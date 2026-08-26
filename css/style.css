@@ -567,11 +567,12 @@ body {
 }
 .cal-day {
   background-color: var(--bg-card);
-  min-height: 100px;
+  height: 110px;
   padding: 5px;
   position: relative;
   cursor: pointer;
   transition: background-color 0.2s;
+  overflow: hidden;
 }
 .cal-day:hover {
   background-color: var(--bg-card-hover);
@@ -591,19 +592,20 @@ body {
   color: var(--text-muted);
 }
 .cal-day-tasks {
-  margin-top: 20px;
+  margin-top: 25px;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 3px;
 }
 .cal-task {
   font-size: 0.7rem;
-  padding: 2px 4px;
+  padding: 3px 6px;
   border-radius: 4px;
   color: white;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  min-height: 18px;
 }
 .cal-task-more {
   font-size: 0.65rem;
@@ -1000,7 +1002,31 @@ body {
     flex-direction: column;
   }
   .cal-day {
-    min-height: 80px;
+    height: 70px; /* Smaller height on mobile */
+  }
+  .main-cal-weekdays {
+    font-size: 0.6rem;
+  }
+  
+  /* Convert tasks to dots on mobile */
+  .cal-day-tasks {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px;
+    margin-top: 25px;
+  }
+  .cal-task {
+    width: 6px;
+    height: 6px;
+    min-height: 6px;
+    border-radius: 50%;
+    padding: 0;
+    color: transparent;
+    overflow: hidden;
+  }
+  .cal-task-more {
+    display: none;
   }
 }
 
