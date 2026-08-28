@@ -34,6 +34,16 @@ window.Calendar_init = function() {
     window.Calendar_render();
   });
 
+  // Upcoming filter select
+  const upcomingFilterSelect = document.getElementById('upcoming-filter-select');
+  if (upcomingFilterSelect) {
+    upcomingFilterSelect.value = window.AppState.upcomingFilter || 'all';
+    upcomingFilterSelect.addEventListener('change', (e) => {
+      window.AppState.upcomingFilter = e.target.value;
+      window.Calendar_renderUpcoming();
+    });
+  }
+
   // Modal handlers
   document.getElementById('cal-task-cancel-btn')?.addEventListener('click', () => {
     if (window.hideModal) window.hideModal('cal-task-modal');
@@ -337,9 +347,17 @@ window.Calendar_renderUpcoming = function() {
     tasks = tasks.filter(t => t.folder_id === window.AppState.currentCalendarFilter);
   }
 
-  const todayTasks = tasks.filter(t => t.due_date === todayStr);
-  const tomorrowTasks = tasks.filter(t => t.due_date === tomorrowStr);
-  const next7Tasks = tasks.filter(t => t.due_date > tomorrowStr && t.due_date <= next7DaysStr);
+  const upcomingFilter = window.AppState.upcomingFilter || 'all';
+
+  let todayTasks = tasks.filter(t => t.due_date === todayStr);
+  let tomorrowTasks = tasks.filter(t => t.due_date === tomorrowStr);
+  let next7Tasks = tasks.filter(t => t.due_date > tomorrowStr && t.due_date <= next7DaysStr);
+
+  if (upcomingFilter === 'pending') {
+    todayTasks = todayTasks.filter(t => !t.completed);
+    tomorrowTasks = tomorrowTasks.filter(t => !t.completed);
+    next7Tasks = next7Tasks.filter(t => !t.completed);
+  }
 
   const renderGroup = (title, groupTasks) => {
     let html = `
@@ -372,7 +390,19 @@ window.Calendar_renderUpcoming = function() {
     return html;
   };
 
-  container.innerHTML = renderGroup('Hoje', todayTasks) + renderGroup('Amanhã', tomorrowTasks) + renderGroup('Próximos 7 dias', next7Tasks);
+  let outputHtml = '';
+  if (upcomingFilter === 'today') {
+    outputHtml = renderGroup('Hoje', todayTasks);
+  } else if (upcomingFilter === 'tomorrow') {
+    outputHtml = renderGroup('Amanhã', tomorrowTasks);
+  } else if (upcomingFilter === 'next7') {
+    outputHtml = renderGroup('Próximos 7 dias', next7Tasks);
+  } else {
+    // 'all' ou 'pending'
+    outputHtml = renderGroup('Hoje', todayTasks) + renderGroup('Amanhã', tomorrowTasks) + renderGroup('Próximos 7 dias', next7Tasks);
+  }
+
+  container.innerHTML = outputHtml;
 
   // Checkbox de conclusão
   container.querySelectorAll('.upcoming-checkbox').forEach(cb => {

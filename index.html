@@ -105,6 +105,12 @@
                                 <option value="priority">⚡ Prioridade (Alta → Baixa)</option>
                                 <option value="name">🔤 Nome (A-Z)</option>
                             </select>
+                            <select id="tasks-limit-select" class="select sort-select" title="Quantidade exibida">
+                                <option value="15" selected>Mostrar 15</option>
+                                <option value="25">Mostrar 25</option>
+                                <option value="50">Mostrar 50</option>
+                                <option value="all">Mostrar Todas</option>
+                            </select>
                         </div>
                     </div>
                     <div id="tasks-filter-tabs" class="filter-tabs">
@@ -128,7 +134,7 @@
                         </table>
                     </div>
                     <div class="tasks-actions">
-                        <button id="load-more-btn" class="btn btn-ghost" style="display:none;">Carregar mais...</button>
+                        <button id="toggle-expand-tasks-btn" class="btn btn-ghost" style="display:none;"></button>
                         <button id="add-task-btn" class="btn btn-ghost add-btn"><i class="fas fa-plus"></i> Nova</button>
                     </div>
                 </div>
@@ -197,8 +203,12 @@
                 <div id="upcoming-section" class="upcoming-section">
                     <h3 class="upcoming-title"><span class="title-dash">—</span> Próximas</h3>
                     <div class="upcoming-filter">
-                        <select id="upcoming-filter-select" class="select">
-                            <option value="all">Todas</option>
+                        <select id="upcoming-filter-select" class="select sort-select" style="width: 100%;">
+                            <option value="all" selected>📅 Todas as próximas</option>
+                            <option value="today">⚡ Apenas Hoje</option>
+                            <option value="tomorrow">🌅 Apenas Amanhã</option>
+                            <option value="next7">📆 Próximos 7 dias</option>
+                            <option value="pending">⏳ Apenas Pendentes</option>
                         </select>
                     </div>
                     <div id="upcoming-list" class="upcoming-list">

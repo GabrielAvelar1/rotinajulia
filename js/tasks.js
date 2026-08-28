@@ -30,6 +30,7 @@ window.Tasks_fetchAll = async function() {
 
 window.Tasks_render = function() {
   const tbody = document.getElementById('tasks-tbody');
+  const toggleExpandBtn = document.getElementById('toggle-expand-tasks-btn');
   if (!tbody) return;
 
   tbody.innerHTML = '';
@@ -63,10 +64,39 @@ window.Tasks_render = function() {
 
   if (filteredTasks.length === 0) {
     tbody.innerHTML = `<tr><td colspan="6" class="empty-msg">Nenhuma tarefa encontrada. Clique em "+ Nova" para adicionar.</td></tr>`;
+    if (toggleExpandBtn) toggleExpandBtn.style.display = 'none';
     return;
   }
 
-  filteredTasks.forEach(task => {
+  // Limite e expansão
+  const limitSetting = window.AppState.taskLimit || '15';
+  const isExpanded = window.AppState.isOverviewExpanded || false;
+  let displayTasks = filteredTasks;
+
+  if (limitSetting !== 'all') {
+    const numLimit = parseInt(limitSetting, 10);
+    if (filteredTasks.length > numLimit) {
+      if (!isExpanded) {
+        displayTasks = filteredTasks.slice(0, numLimit);
+        if (toggleExpandBtn) {
+          toggleExpandBtn.style.display = 'inline-block';
+          toggleExpandBtn.innerHTML = `<i class="fas fa-chevron-down"></i> Mostrar mais (${filteredTasks.length - numLimit} restantes)`;
+        }
+      } else {
+        displayTasks = filteredTasks;
+        if (toggleExpandBtn) {
+          toggleExpandBtn.style.display = 'inline-block';
+          toggleExpandBtn.innerHTML = `<i class="fas fa-chevron-up"></i> Recolher tarefas`;
+        }
+      }
+    } else {
+      if (toggleExpandBtn) toggleExpandBtn.style.display = 'none';
+    }
+  } else {
+    if (toggleExpandBtn) toggleExpandBtn.style.display = 'none';
+  }
+
+  displayTasks.forEach(task => {
     const tr = document.createElement('tr');
     tr.setAttribute('data-task-id', task.id);
     tr.className = 'task-row';
@@ -165,12 +195,32 @@ window.Tasks_setupEventListeners = function() {
   const cancelBtn = document.getElementById('task-cancel-btn');
   const colorOptionsContainer = document.getElementById('task-color-options');
   const sortSelect = document.getElementById('tasks-sort-select');
+  const limitSelect = document.getElementById('tasks-limit-select');
+  const toggleExpandBtn = document.getElementById('toggle-expand-tasks-btn');
 
   // Ordenação
   if (sortSelect) {
     sortSelect.value = window.AppState.taskSort || 'date_asc';
     sortSelect.addEventListener('change', (e) => {
       window.AppState.taskSort = e.target.value;
+      window.Tasks_render();
+    });
+  }
+
+  // Limite de tarefas
+  if (limitSelect) {
+    limitSelect.value = window.AppState.taskLimit || '15';
+    limitSelect.addEventListener('change', (e) => {
+      window.AppState.taskLimit = e.target.value;
+      window.AppState.isOverviewExpanded = false;
+      window.Tasks_render();
+    });
+  }
+
+  // Botão expandir/recolher
+  if (toggleExpandBtn) {
+    toggleExpandBtn.addEventListener('click', () => {
+      window.AppState.isOverviewExpanded = !window.AppState.isOverviewExpanded;
       window.Tasks_render();
     });
   }
