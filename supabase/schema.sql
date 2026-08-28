@@ -216,8 +216,13 @@ CREATE POLICY "Users can upload images" ON storage.objects
 CREATE POLICY "Users can update their images" ON storage.objects
   FOR UPDATE USING (bucket_id = 'images' AND auth.uid() = owner);
 
-CREATE POLICY "Users can delete their images" ON storage.objects
-  FOR DELETE USING (bucket_id = 'images' AND auth.uid() = owner);
-
 CREATE POLICY "Public image access" ON storage.objects
   FOR SELECT USING (bucket_id = 'images');
+
+-- ==========================================================
+-- ATUALIZAÇÕES / MIGRAÇÕES COMPLEMENTARES
+-- ==========================================================
+ALTER TABLE folders ADD COLUMN IF NOT EXISTS cover_position TEXT DEFAULT 'center';
+ALTER TABLE routines ADD COLUMN IF NOT EXISTS days_of_week TEXT DEFAULT 'all';
+ALTER TABLE site_config ADD COLUMN IF NOT EXISTS app_icon_url TEXT;
+

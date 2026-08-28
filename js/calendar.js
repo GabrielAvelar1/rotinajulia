@@ -3,6 +3,10 @@
 
 const MONTH_NAMES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
 
+function getCalDateStr(d) {
+  return window.getLocalDateString ? window.getLocalDateString(d) : d.toISOString().split('T')[0];
+}
+
 window.Calendar_init = function() {
   document.getElementById('main-cal-prev')?.addEventListener('click', () => {
     let d = window.AppState.calendarDate;
@@ -37,12 +41,12 @@ window.Calendar_init = function() {
 
   document.getElementById('cal-task-save-btn')?.addEventListener('click', async () => {
     try {
-      const title = document.getElementById('cal-task-title-input').value;
-      const folderId = document.getElementById('cal-task-folder-select').value;
+      const title = document.getElementById('cal-task-title-input').value.trim();
+      const folderId = document.getElementById('cal-task-folder-select').value || null;
       const selectedColor = document.querySelector('#cal-task-color-options .color-option.selected');
       const color = selectedColor ? selectedColor.dataset.color : '#8b5cf6';
       const priority = document.getElementById('cal-task-priority-select').value;
-      const dueDate = document.getElementById('cal-task-date-input').value;
+      const dueDate = document.getElementById('cal-task-date-input').value || null;
       
       if (!title) {
         window.showToast?.('O título da tarefa é obrigatório.', 'error');
@@ -53,7 +57,7 @@ window.Calendar_init = function() {
       
       const { data, error } = await window.supabase.from('tasks').insert([{
         user_id: user.id,
-        folder_id: folderId || null,
+        folder_id: folderId,
         title,
         due_date: dueDate,
         color,
@@ -65,8 +69,11 @@ window.Calendar_init = function() {
       
       if (data && data.length > 0) {
         window.AppState.tasks.push(data[0]);
-        window.Calendar_render();
-        if (window.Tasks_render) window.Tasks_render(); // Update overview if available
+        if (window.App_refreshAll) {
+          window.App_refreshAll();
+        } else {
+          window.Calendar_render();
+        }
         if (window.hideModal) window.hideModal('cal-task-modal');
         window.showToast?.('Tarefa criada com sucesso!', 'success');
         
@@ -106,7 +113,7 @@ window.Calendar_updateFilterTabs = function() {
   window.AppState.folders.forEach(folder => {
     const isActive = window.AppState.currentCalendarFilter === folder.id;
     html += `<button class="filter-tab ${isActive ? 'active' : ''}" data-filter="${folder.id}">
-      <span class="folder-color-dot" style="background-color: ${folder.color}"></span> ${folder.name}
+      <span class="folder-color-dot" style="background-color: ${folder.color || '#8b5cf6'}"></span> ${folder.name}
     </button>`;
   });
   
@@ -160,14 +167,14 @@ window.Calendar_renderMini = function() {
     } else {
       // Current month
       const isToday = today.getDate() === date && today.getMonth() === month && today.getFullYear() === year;
-      const cellDate = new Date(year, month, date);
       const isSelected = window.AppState.calendarDate.getDate() === date && window.AppState.calendarDate.getMonth() === month && window.AppState.calendarDate.getFullYear() === year;
       
       let classes = 'mini-cal-day';
       if (isToday) classes += ' today';
       if (isSelected) classes += ' selected';
       
-      html += `<div class="${classes}" data-date="${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}">${date}</div>`;
+      const dateString = `${year}-${String(month + 1).padStart(2, '0')}-${String(date).padStart(2, '0')}`;
+      html += `<div class="${classes}" data-date="${dateString}">${date}</div>`;
       date++;
     }
   }
@@ -208,6 +215,7 @@ window.Calendar_renderMain = function() {
   let nextDate = 1;
   
   const today = new Date();
+  const todayStr = getCalDateStr(today);
   
   for (let i = 0; i < 42; i++) {
     let cellDateStr;
@@ -236,12 +244,12 @@ window.Calendar_renderMain = function() {
       date++;
     }
     
-    const isToday = cellDateStr === `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+    const isToday = cellDateStr === todayStr;
     
-    // Get tasks for this date
+    // Obter tarefas para esta data
     let dayTasks = window.AppState.tasks.filter(t => t.due_date === cellDateStr);
     
-    // Apply filter
+    // Aplicar filtro
     if (window.AppState.currentCalendarFilter !== 'all') {
       dayTasks = dayTasks.filter(t => t.folder_id === window.AppState.currentCalendarFilter);
     }
@@ -257,7 +265,7 @@ window.Calendar_renderMain = function() {
     displayTasks.forEach(t => {
       const opacity = t.completed ? '0.5' : '1';
       const lineThrough = t.completed ? 'line-through' : 'none';
-      tasksHtml += `<div class="cal-task" style="background-color: ${t.color || '#3b82f6'}; opacity: ${opacity}; text-decoration: ${lineThrough};">
+      tasksHtml += `<div class="cal-task" style="background-color: ${t.color || '#8b5cf6'}; opacity: ${opacity}; text-decoration: ${lineThrough};" title="${t.title}">
         ${t.title}
       </div>`;
     });
@@ -280,7 +288,7 @@ window.Calendar_renderMain = function() {
   
   container.querySelectorAll('.cal-day').forEach(cell => {
     cell.addEventListener('click', (e) => {
-      if (e.target.closest('.cal-task')) return; // Ignore clicks on tasks for now
+      if (e.target.closest('.cal-task')) return;
       
       const dateStr = cell.dataset.date;
       const dateInput = document.getElementById('cal-task-date-input');
@@ -291,12 +299,12 @@ window.Calendar_renderMain = function() {
         dateDisplay.textContent = `${d}/${m}/${y}`;
       }
       
-      // Populate folder select
+      // Popular select de pastas
       const folderSelect = document.getElementById('cal-task-folder-select');
       if (folderSelect) {
         let options = '<option value="">Sem pasta</option>';
         window.AppState.folders.forEach(f => {
-          options += `<option value="${f.id}">${f.name}</option>`;
+          options += `<option value="${f.id}">${f.icon || '📁'} ${f.name}</option>`;
         });
         folderSelect.innerHTML = options;
         if (window.AppState.currentCalendarFilter !== 'all') {
@@ -313,14 +321,16 @@ window.Calendar_renderUpcoming = function() {
   const container = document.getElementById('upcoming-list');
   if (!container) return;
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const today = new Date();
+  const todayStr = getCalDateStr(today);
+  
   const tomorrow = new Date();
   tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = tomorrow.toISOString().split('T')[0];
+  const tomorrowStr = getCalDateStr(tomorrow);
   
   const next7Days = new Date();
   next7Days.setDate(next7Days.getDate() + 7);
-  const next7DaysStr = next7Days.toISOString().split('T')[0];
+  const next7DaysStr = getCalDateStr(next7Days);
 
   let tasks = window.AppState.tasks;
   if (window.AppState.currentCalendarFilter !== 'all') {
@@ -342,17 +352,18 @@ window.Calendar_renderUpcoming = function() {
       html += `<p class="upcoming-empty">Nenhuma tarefa.</p>`;
     } else {
       groupTasks.forEach(t => {
-        let badgeColor = '#64748b';
+        let badgeColor = '#8b5cf6';
         let badgeText = 'Média';
         if (t.priority === 'alta') { badgeColor = '#ef4444'; badgeText = 'Alta'; }
-        if (t.priority === 'baixa') { badgeColor = '#3b82f6'; badgeText = 'Baixa'; }
+        if (t.priority === 'baixa') { badgeColor = '#22c55e'; badgeText = 'Baixa'; }
         
         html += `
           <div class="upcoming-task ${t.completed ? 'completed' : ''}" data-id="${t.id}">
             <input type="checkbox" class="upcoming-checkbox" ${t.completed ? 'checked' : ''} data-id="${t.id}">
-            <span class="upcoming-dot" style="background-color: ${t.color || '#3b82f6'}"></span>
+            <span class="upcoming-dot" style="background-color: ${t.color || '#8b5cf6'}"></span>
             <span class="upcoming-title" style="${t.completed ? 'text-decoration: line-through; opacity: 0.6;' : ''}">${t.title}</span>
             <span class="upcoming-priority" style="background-color: ${badgeColor}20; color: ${badgeColor}">${badgeText}</span>
+            <button class="task-edit-btn upcoming-edit-btn" data-id="${t.id}" title="Editar" style="margin-left:auto;">✏️</button>
           </div>
         `;
       });
@@ -363,6 +374,7 @@ window.Calendar_renderUpcoming = function() {
 
   container.innerHTML = renderGroup('Hoje', todayTasks) + renderGroup('Amanhã', tomorrowTasks) + renderGroup('Próximos 7 dias', next7Tasks);
 
+  // Checkbox de conclusão
   container.querySelectorAll('.upcoming-checkbox').forEach(cb => {
     cb.addEventListener('change', async (e) => {
       const id = e.target.dataset.id;
@@ -377,13 +389,45 @@ window.Calendar_renderUpcoming = function() {
           window.AppState.tasks[taskIndex].completed = completed;
         }
         
-        window.Calendar_render();
-        if (window.Tasks_render) window.Tasks_render();
+        if (window.App_refreshAll) {
+          window.App_refreshAll();
+        } else {
+          window.Calendar_render();
+        }
       } catch (err) {
         console.error(err);
-        e.target.checked = !completed; // revert
+        e.target.checked = !completed;
         window.showToast?.('Erro ao atualizar tarefa', 'error');
       }
     });
   });
+
+  // Botão editar tarefa no upcoming
+  container.querySelectorAll('.upcoming-edit-btn').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const id = e.currentTarget.dataset.id;
+      const task = window.AppState.tasks.find(t => t.id === id);
+      if (!task) return;
+
+      document.getElementById('task-modal-title').textContent = 'Editar Tarefa';
+      document.getElementById('task-id-input').value = task.id;
+      document.getElementById('task-title-input').value = task.title;
+      document.getElementById('task-folder-select').value = task.folder_id || '';
+      document.getElementById('task-date-input').value = task.due_date || '';
+      document.getElementById('task-priority-select').value = task.priority || 'media';
+      document.getElementById('task-color-input').value = task.color || '#8b5cf6';
+      
+      const colorOptions = document.querySelectorAll('#task-color-options .color-option');
+      colorOptions.forEach(opt => {
+        if (opt.getAttribute('data-color') === task.color) {
+          opt.classList.add('selected');
+        } else {
+          opt.classList.remove('selected');
+        }
+      });
+
+      window.showModal('task-modal');
+    });
+  });
 };
+

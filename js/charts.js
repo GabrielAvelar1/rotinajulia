@@ -4,14 +4,43 @@
 let weeklyChartInstance = null;
 let monthlyChartInstance = null;
 
-window.Charts_init = function() {
+function getChartDateStr(d) {
+  return window.getLocalDateString ? window.getLocalDateString(d) : d.toISOString().split('T')[0];
+}
+
+window.Charts_init = async function() {
   if (typeof Chart !== 'undefined') {
     Chart.defaults.color = '#94a3b8';
     Chart.defaults.borderColor = '#2d2d44';
   } else {
     console.warn('Chart.js não está carregado.');
   }
+  await window.Charts_fetchLogs();
   window.Charts_render();
+};
+
+window.Charts_fetchLogs = async function() {
+  const user = window.AppState.user;
+  if (!user) return;
+  
+  // Buscar histórico de logs dos últimos 60 dias
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - 60);
+  const startStr = getChartDateStr(startDate);
+
+  try {
+    const { data, error } = await window.supabase
+      .from('routine_logs')
+      .select('*')
+      .eq('user_id', user.id)
+      .gte('completed_date', startStr);
+
+    if (!error && data) {
+      window.AppState.routineLogs = data;
+    }
+  } catch (err) {
+    console.error('Erro ao carregar histórico de rotinas:', err);
+  }
 };
 
 window.Charts_render = function() {
@@ -25,7 +54,7 @@ window.Charts_render = function() {
 };
 
 function getDayLogs(dateStr) {
-  return window.AppState.routineLogs.filter(l => l.completed_date === dateStr && l.completed);
+  return (window.AppState.routineLogs || []).filter(l => l.completed_date === dateStr && l.completed);
 }
 
 function renderWeeklyChart(totalRoutines) {
@@ -39,11 +68,11 @@ function renderWeeklyChart(totalRoutines) {
 
   const today = new Date();
   
-  // Calculate for last 7 days including today
+  // Calcular últimos 7 dias
   for (let i = 6; i >= 0; i--) {
     const d = new Date();
     d.setDate(today.getDate() - i);
-    const dateStr = d.toISOString().split('T')[0];
+    const dateStr = getChartDateStr(d);
     labels.push(dayNames[d.getDay()]);
     
     const completed = getDayLogs(dateStr).length;
@@ -51,7 +80,7 @@ function renderWeeklyChart(totalRoutines) {
     data.push(percentage);
     
     if (i === 0) {
-      bgColors.push('#a78bfa'); // today brighter
+      bgColors.push('#a78bfa');
     } else {
       bgColors.push('#8b5cf6');
     }
@@ -179,7 +208,7 @@ function renderIndicators(totalRoutines) {
     for (let i = startOffset; i <= endOffset; i++) {
       const d = new Date();
       d.setDate(today.getDate() - i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = getChartDateStr(d);
       const completed = getDayLogs(dateStr).length;
       sum += totalRoutines === 0 ? 0 : (completed / totalRoutines) * 100;
     }

@@ -3,8 +3,8 @@
 
 window.Tasks_init = async function() {
   try {
-    // Carregar primeira página de tarefas
-    await window.Tasks_fetchPage();
+    // Carregar todas as tarefas do usuário para manter calendário e contadores precisos
+    await window.Tasks_fetchAll();
     window.Tasks_updateFilterTabs();
     window.Tasks_setupEventListeners();
   } catch (error) {
@@ -13,29 +13,16 @@ window.Tasks_init = async function() {
   }
 };
 
-window.Tasks_fetchPage = async function() {
-  const from = window.AppState.taskPage * window.AppState.tasksPerPage;
-  const to = from + window.AppState.tasksPerPage - 1;
-
-  let query = window.supabase
+window.Tasks_fetchAll = async function() {
+  const { data, error } = await window.supabase
     .from('tasks')
     .select('*')
     .eq('user_id', window.AppState.user.id)
-    .order('created_at', { ascending: false })
-    .range(from, to);
+    .order('due_date', { ascending: true, nullsFirst: false });
 
-  const { data, error } = await query;
   if (error) throw error;
 
-  if (window.AppState.taskPage === 0) {
-    window.AppState.tasks = data || [];
-  } else {
-    // Adicionar as novas tarefas evitando duplicatas
-    const existingIds = new Set(window.AppState.tasks.map(t => t.id));
-    const newTasks = (data || []).filter(t => !existingIds.has(t.id));
-    window.AppState.tasks = [...window.AppState.tasks, ...newTasks];
-  }
-
+  window.AppState.tasks = data || [];
   window.Tasks_render();
 };
 
@@ -46,9 +33,36 @@ window.Tasks_render = function() {
   tbody.innerHTML = '';
 
   const filter = window.AppState.currentOverviewFilter;
-  const filteredTasks = filter === 'all' 
-    ? window.AppState.tasks 
+  let filteredTasks = filter === 'all' 
+    ? [...window.AppState.tasks]
     : window.AppState.tasks.filter(t => t.folder_id === filter);
+
+  // Ordenação das tarefas
+  const sortMode = window.AppState.taskSort || 'date_asc';
+  filteredTasks.sort((a, b) => {
+    if (sortMode === 'date_asc') {
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      return a.due_date.localeCompare(b.due_date);
+    } else if (sortMode === 'date_desc') {
+      if (!a.due_date) return 1;
+      if (!b.due_date) return -1;
+      return b.due_date.localeCompare(a.due_date);
+    } else if (sortMode === 'priority') {
+      const pWeights = { 'alta': 3, 'media': 2, 'baixa': 1 };
+      const weightA = pWeights[a.priority] || 0;
+      const weightB = pWeights[b.priority] || 0;
+      return weightB - weightA;
+    } else if (sortMode === 'name') {
+      return (a.title || '').localeCompare(b.title || '');
+    }
+    return 0;
+  });
+
+  if (filteredTasks.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="6" class="empty-msg">Nenhuma tarefa encontrada. Clique em "+ Nova" para adicionar.</td></tr>`;
+    return;
+  }
 
   filteredTasks.forEach(task => {
     const tr = document.createElement('tr');
@@ -57,22 +71,22 @@ window.Tasks_render = function() {
     
     // Obter nome da pasta
     let folderName = 'Sem pasta';
-    let folderColor = '#888';
+    let folderColor = '#8b5cf6';
     if (task.folder_id) {
       const folder = window.AppState.folders.find(f => f.id === task.folder_id);
       if (folder) {
-        folderName = folder.icon + ' ' + folder.name;
-        folderColor = folder.color || '#2196F3';
+        folderName = (folder.icon || '📁') + ' ' + folder.name;
+        folderColor = folder.color || '#8b5cf6';
       }
     }
 
     // Cores de prioridade
     const priorityColors = {
-      'alta': '#f44336',
-      'media': '#ff9800',
-      'baixa': '#4caf50'
+      'alta': '#ef4444',
+      'media': '#f59e0b',
+      'baixa': '#22c55e'
     };
-    const pColor = priorityColors[task.priority] || '#888';
+    const pColor = priorityColors[task.priority] || '#8b5cf6';
     
     const textStyle = task.completed ? 'text-decoration: line-through; opacity: 0.6;' : '';
     
@@ -90,10 +104,11 @@ window.Tasks_render = function() {
         ${window.formatDate(task.due_date)}
       </td>
       <td class="task-cell-priority">
-        <span class="badge" style="background-color: ${pColor}; color: white;">${task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : ''}</span>
+        <span class="badge" style="background-color: ${pColor}; color: white;">${task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : 'Média'}</span>
       </td>
       <td class="task-cell-actions">
-        <button class="task-delete-btn" title="Excluir">🗑️</button>
+        <button class="task-edit-btn" title="Editar tarefa">✏️</button>
+        <button class="task-delete-btn" title="Excluir tarefa">🗑️</button>
       </td>
     `;
     tbody.appendChild(tr);
@@ -117,17 +132,15 @@ window.Tasks_updateFilterTabs = function() {
     
     tabsContainer.innerHTML = tabsHtml;
 
-    // Atualizar selects de pastas também, já que dependem da mesma lista de pastas
+    // Atualizar selects de pastas
     const updateSelect = (selectEl, includeEmpty = true) => {
       if (!selectEl) return;
-      // Salva valor atual
       const currentVal = selectEl.value;
       let options = includeEmpty ? '<option value="">Sem pasta</option>' : '';
       window.AppState.folders.forEach(f => {
         options += `<option value="${f.id}">${f.icon || '📁'} ${f.name}</option>`;
       });
       selectEl.innerHTML = options;
-      // Restaura se ainda existir
       if (currentVal && window.AppState.folders.find(f => f.id === currentVal)) {
         selectEl.value = currentVal;
       }
@@ -148,23 +161,32 @@ window.Tasks_setupEventListeners = function() {
   const addBtn = document.getElementById('add-task-btn');
   const saveBtn = document.getElementById('task-save-btn');
   const cancelBtn = document.getElementById('task-cancel-btn');
-  const loadMoreBtn = document.getElementById('load-more-btn');
   const colorOptionsContainer = document.getElementById('task-color-options');
+  const sortSelect = document.getElementById('tasks-sort-select');
 
+  // Ordenação
+  if (sortSelect) {
+    sortSelect.value = window.AppState.taskSort || 'date_asc';
+    sortSelect.addEventListener('change', (e) => {
+      window.AppState.taskSort = e.target.value;
+      window.Tasks_render();
+    });
+  }
+
+  // Filtros por pasta
   if (tabsContainer) {
     tabsContainer.addEventListener('click', (e) => {
       if (e.target.classList.contains('filter-tab')) {
-        // Atualizar UI
         document.querySelectorAll('#tasks-filter-tabs .filter-tab').forEach(t => t.classList.remove('active'));
         e.target.classList.add('active');
         
-        // Atualizar estado e renderizar
         window.AppState.currentOverviewFilter = e.target.getAttribute('data-filter');
         window.Tasks_render();
       }
     });
   }
 
+  // Tabela: Checkbox, Editar, Excluir
   if (tbody) {
     tbody.addEventListener('click', async (e) => {
       const tr = e.target.closest('tr');
@@ -177,7 +199,6 @@ window.Tasks_setupEventListeners = function() {
       if (e.target.classList.contains('task-checkbox') || e.target.closest('.task-cell-checkbox')) {
         const checkbox = tr.querySelector('.task-checkbox');
         const newCompleted = !task.completed;
-        // Evitar multiplos clicks
         if (e.target.type !== 'checkbox') checkbox.checked = newCompleted;
         
         try {
@@ -188,17 +209,45 @@ window.Tasks_setupEventListeners = function() {
           if (error) throw error;
           
           task.completed = newCompleted;
-          window.Tasks_render();
-          if (window.Calendar_render) window.Calendar_render();
+          if (window.App_refreshAll) {
+            window.App_refreshAll();
+          } else {
+            window.Tasks_render();
+          }
         } catch (error) {
           console.error('Erro ao atualizar tarefa:', error);
           window.showToast('Erro ao atualizar status', 'error');
-          checkbox.checked = !newCompleted; // Reverter
+          checkbox.checked = !newCompleted;
         }
+        return;
+      }
+
+      // Editar Tarefa
+      if (e.target.classList.contains('task-edit-btn') || e.target.closest('.task-edit-btn')) {
+        document.getElementById('task-modal-title').textContent = 'Editar Tarefa';
+        document.getElementById('task-id-input').value = task.id;
+        document.getElementById('task-title-input').value = task.title;
+        document.getElementById('task-folder-select').value = task.folder_id || '';
+        document.getElementById('task-date-input').value = task.due_date || '';
+        document.getElementById('task-priority-select').value = task.priority || 'media';
+        document.getElementById('task-color-input').value = task.color || '#8b5cf6';
+        
+        // Selecionar cor no modal
+        const colorOptions = document.querySelectorAll('#task-color-options .color-option');
+        colorOptions.forEach(opt => {
+          if (opt.getAttribute('data-color') === task.color) {
+            opt.classList.add('selected');
+          } else {
+            opt.classList.remove('selected');
+          }
+        });
+
+        window.showModal('task-modal');
+        return;
       }
 
       // Excluir
-      if (e.target.classList.contains('task-delete-btn')) {
+      if (e.target.classList.contains('task-delete-btn') || e.target.closest('.task-delete-btn')) {
         if (confirm(`Excluir a tarefa "${task.title}"?`)) {
           try {
             const { error } = await window.supabase
@@ -208,8 +257,11 @@ window.Tasks_setupEventListeners = function() {
             if (error) throw error;
             
             window.AppState.tasks = window.AppState.tasks.filter(t => t.id !== task.id);
-            window.Tasks_render();
-            if (window.Calendar_render) window.Calendar_render();
+            if (window.App_refreshAll) {
+              window.App_refreshAll();
+            } else {
+              window.Tasks_render();
+            }
             window.showToast('Tarefa excluída');
           } catch (error) {
             console.error('Erro ao excluir tarefa:', error);
@@ -220,19 +272,19 @@ window.Tasks_setupEventListeners = function() {
     });
   }
 
+  // Abrir Modal de Nova Tarefa
   if (addBtn) {
     addBtn.addEventListener('click', () => {
+      document.getElementById('task-modal-title').textContent = 'Nova Tarefa';
       document.getElementById('task-id-input').value = '';
       document.getElementById('task-title-input').value = '';
-      document.getElementById('task-date-input').value = new Date().toISOString().split('T')[0];
+      document.getElementById('task-date-input').value = window.getLocalDateString ? window.getLocalDateString() : new Date().toISOString().split('T')[0];
       document.getElementById('task-priority-select').value = 'media';
-      document.getElementById('task-color-input').value = '#2196F3';
+      document.getElementById('task-color-input').value = '#8b5cf6';
       
-      // Reset color selection if we had UI for it
-      const options = document.querySelectorAll('.color-option');
+      const options = document.querySelectorAll('#task-color-options .color-option');
       if (options.length > 0) {
         options.forEach(opt => opt.classList.remove('selected'));
-        // Select first by default if any
         options[0].classList.add('selected');
         document.getElementById('task-color-input').value = options[0].getAttribute('data-color');
       }
@@ -247,6 +299,7 @@ window.Tasks_setupEventListeners = function() {
     });
   }
 
+  // Seletor de cores
   if (colorOptionsContainer) {
     colorOptionsContainer.addEventListener('click', (e) => {
       const btn = e.target.closest('.color-option');
@@ -258,12 +311,13 @@ window.Tasks_setupEventListeners = function() {
     });
   }
 
+  // Salvar Tarefa (Criar ou Editar)
   if (saveBtn) {
     saveBtn.addEventListener('click', async () => {
       const id = document.getElementById('task-id-input').value;
       const title = document.getElementById('task-title-input').value.trim();
       const folder_id = document.getElementById('task-folder-select').value || null;
-      const due_date = document.getElementById('task-date-input').value;
+      const due_date = document.getElementById('task-date-input').value || null;
       const priority = document.getElementById('task-priority-select').value;
       const color = document.getElementById('task-color-input').value;
 
@@ -296,7 +350,7 @@ window.Tasks_setupEventListeners = function() {
           
           const index = window.AppState.tasks.findIndex(t => t.id === id);
           if (index !== -1) window.AppState.tasks[index] = data;
-          window.showToast('Tarefa atualizada');
+          window.showToast('Tarefa atualizada!');
         } else {
           taskData.completed = false;
           const { data, error } = await window.supabase
@@ -306,14 +360,16 @@ window.Tasks_setupEventListeners = function() {
             .single();
           if (error) throw error;
           
-          window.AppState.tasks.unshift(data); // Add no inicio
-          window.showToast('Tarefa criada');
+          window.AppState.tasks.unshift(data);
+          window.showToast('Tarefa criada!');
         }
 
         window.hideModal('task-modal');
-        window.Tasks_render();
-        if (window.Folders_render) window.Folders_render(); // Para atualizar contador de tarefas na pasta
-        if (window.Calendar_render) window.Calendar_render();
+        if (window.App_refreshAll) {
+          window.App_refreshAll();
+        } else {
+          window.Tasks_render();
+        }
 
       } catch (error) {
         console.error('Erro ao salvar tarefa:', error);
@@ -324,19 +380,5 @@ window.Tasks_setupEventListeners = function() {
       }
     });
   }
-
-  if (loadMoreBtn) {
-    loadMoreBtn.addEventListener('click', async () => {
-      window.AppState.taskPage++;
-      const btnOrigText = loadMoreBtn.textContent;
-      loadMoreBtn.textContent = 'Carregando...';
-      loadMoreBtn.disabled = true;
-      try {
-        await window.Tasks_fetchPage();
-      } finally {
-        loadMoreBtn.textContent = btnOrigText;
-        loadMoreBtn.disabled = false;
-      }
-    });
-  }
 };
+

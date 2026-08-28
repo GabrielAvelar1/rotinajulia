@@ -37,14 +37,15 @@ window.Folders_render = function() {
     card.setAttribute('data-folder-id', folder.id);
     card.style.position = 'relative';
 
+    const pos = folder.cover_position || 'center';
     const coverHtml = folder.cover_url 
-      ? `<div class="folder-cover" style="background-image: url('${folder.cover_url}');"></div>`
+      ? `<div class="folder-cover" style="background-image: url('${folder.cover_url}'); background-position: center ${pos};"></div>`
       : `<div class="folder-cover placeholder-cover"></div>`;
 
     card.innerHTML = `
       ${coverHtml}
       <div class="folder-content">
-        <div class="folder-header" style="color: ${folder.color || '#333'}">
+        <div class="folder-header" style="color: ${folder.color || '#8b5cf6'}">
           <span class="folder-icon">${folder.icon || '📁'}</span>
           <h3 class="folder-name">${folder.name}</h3>
         </div>
@@ -63,6 +64,7 @@ window.Folders_render = function() {
 window.Folders_updateDependents = function() {
   if (window.Tasks_updateFilterTabs) window.Tasks_updateFilterTabs();
   if (window.Calendar_updateFilterTabs) window.Calendar_updateFilterTabs();
+  if (window.App_refreshAll) window.App_refreshAll();
 };
 
 window.Folders_setupEventListeners = function() {
@@ -71,6 +73,15 @@ window.Folders_setupEventListeners = function() {
   const saveBtn = document.getElementById('folder-save-btn');
   const cancelBtn = document.getElementById('folder-cancel-btn');
   const coverInput = document.getElementById('folder-cover-input');
+  const positionSelect = document.getElementById('folder-cover-position-select');
+  const preview = document.getElementById('folder-cover-preview');
+
+  // Preview position change
+  if (positionSelect && preview) {
+    positionSelect.addEventListener('change', (e) => {
+      preview.style.objectPosition = `center ${e.target.value}`;
+    });
+  }
   
   if (addBtn) {
     addBtn.addEventListener('click', () => {
@@ -78,8 +89,12 @@ window.Folders_setupEventListeners = function() {
       document.getElementById('folder-name-input').value = '';
       document.getElementById('folder-icon-input').value = '📁';
       document.getElementById('folder-color-input').value = '#8b5cf6';
-      const preview = document.getElementById('folder-cover-preview');
-      if (preview) { preview.src = ''; preview.style.display = 'none'; }
+      if (positionSelect) positionSelect.value = 'center';
+      if (preview) {
+        preview.src = '';
+        preview.style.display = 'none';
+        preview.style.objectPosition = 'center center';
+      }
       if (coverInput) coverInput.value = '';
       window.showModal('folder-modal');
     });
@@ -97,10 +112,11 @@ window.Folders_setupEventListeners = function() {
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
-          const preview = document.getElementById('folder-cover-preview');
           if (preview) {
             preview.src = e.target.result;
             preview.style.display = 'block';
+            const pos = positionSelect ? positionSelect.value : 'center';
+            preview.style.objectPosition = `center ${pos}`;
           }
         };
         reader.readAsDataURL(file);
@@ -124,12 +140,13 @@ window.Folders_setupEventListeners = function() {
         document.getElementById('folder-name-input').value = folder.name;
         document.getElementById('folder-icon-input').value = folder.icon || '📁';
         document.getElementById('folder-color-input').value = folder.color || '#8b5cf6';
+        if (positionSelect) positionSelect.value = folder.cover_position || 'center';
         
-        const preview = document.getElementById('folder-cover-preview');
         if (preview) {
           if (folder.cover_url) {
             preview.src = folder.cover_url;
             preview.style.display = 'block';
+            preview.style.objectPosition = `center ${folder.cover_position || 'center'}`;
           } else {
             preview.src = '';
             preview.style.display = 'none';
@@ -169,6 +186,7 @@ window.Folders_setupEventListeners = function() {
       const name = document.getElementById('folder-name-input').value.trim();
       const icon = document.getElementById('folder-icon-input').value.trim();
       const color = document.getElementById('folder-color-input').value;
+      const cover_position = positionSelect ? positionSelect.value : 'center';
       const file = coverInput ? coverInput.files[0] : null;
 
       if (!name) {
@@ -189,6 +207,7 @@ window.Folders_setupEventListeners = function() {
           name,
           icon,
           color,
+          cover_position,
           user_id: window.AppState.user.id
         };
         

@@ -13,11 +13,28 @@ window.AppState = {
   currentCalendarFilter: 'all',
   calendarDate: new Date(),
   miniCalDate: new Date(),
+  taskSort: 'date_asc',
   taskPage: 0,
-  tasksPerPage: 10
+  tasksPerPage: 100
 };
 
 // Funções de utilidade globais
+window.getLocalDateString = function(d = new Date()) {
+  const dateObj = typeof d === 'string' ? new Date(d) : d;
+  const year = dateObj.getFullYear();
+  const month = String(dateObj.getMonth() + 1).padStart(2, '0');
+  const day = String(dateObj.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+};
+
+window.App_refreshAll = function() {
+  if (window.Tasks_render) window.Tasks_render();
+  if (window.Folders_render) window.Folders_render();
+  if (window.Calendar_render) window.Calendar_render();
+  if (window.Routines_render) window.Routines_render();
+  if (window.Charts_render) window.Charts_render();
+};
+
 window.showToast = function(message, type = 'success') {
   const toast = document.createElement('div');
   toast.className = `toast toast-${type}`;
@@ -47,6 +64,13 @@ window.showToast = function(message, type = 'success') {
 
 window.formatDate = function(dateStr) {
   if (!dateStr) return '';
+  // Se for YYYY-MM-DD, parsear com partes locais para evitar fuso horário
+  if (typeof dateStr === 'string' && dateStr.includes('-')) {
+    const parts = dateStr.split('T')[0].split('-');
+    if (parts.length === 3) {
+      return `${parts[2]}/${parts[1]}/${parts[0]}`;
+    }
+  }
   const date = new Date(dateStr);
   return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',

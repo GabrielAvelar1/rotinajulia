@@ -46,12 +46,18 @@ function Banner_applyConfig() {
   if (!config) return;
 
   const titleEl = document.getElementById('site-title');
+  const subtitleEl = document.getElementById('site-subtitle');
   const bannerImg = document.getElementById('banner-image');
   const bannerContainer = document.querySelector('.banner-container');
 
   // Aplicar título
   if (titleEl) {
     titleEl.textContent = config.title || 'Minha Rotina';
+  }
+
+  // Aplicar subtítulo
+  if (subtitleEl) {
+    subtitleEl.textContent = config.subtitle || 'Todas as suas tarefas em um só lugar.';
   }
 
   // Aplicar banner
@@ -65,15 +71,47 @@ function Banner_applyConfig() {
       bannerContainer.style.background = 'linear-gradient(135deg, #1a1a2e 0%, #4a1a6b 50%, #2d1b69 100%)';
     }
   }
+
+  // Aplicar ícone do app se existir
+  if (config.app_icon_url) {
+    Banner_applyAppIcon(config.app_icon_url);
+  }
+}
+
+function Banner_applyAppIcon(iconUrl) {
+  if (!iconUrl) return;
+  
+  // Atualizar apple-touch-icon
+  let touchIcon = document.querySelector('link[rel="apple-touch-icon"]');
+  if (!touchIcon) {
+    touchIcon = document.createElement('link');
+    touchIcon.rel = 'apple-touch-icon';
+    document.head.appendChild(touchIcon);
+  }
+  touchIcon.href = iconUrl;
+
+  // Atualizar favicon
+  let favicon = document.querySelector('link[rel="icon"]');
+  if (!favicon) {
+    favicon = document.createElement('link');
+    favicon.rel = 'icon';
+    document.head.appendChild(favicon);
+  }
+  favicon.href = iconUrl;
 }
 
 function Banner_setupEventListeners() {
   const uploadBtn = document.getElementById('banner-upload-btn');
   const fileInput = document.getElementById('banner-file-input');
   const titleEl = document.getElementById('site-title');
+  const subtitleEl = document.getElementById('site-subtitle');
+  const appIconBtn = document.getElementById('app-icon-btn');
+  const appIconInput = document.getElementById('app-icon-file-input');
 
+  // Upload de Banner
   if (uploadBtn && fileInput) {
-    uploadBtn.addEventListener('click', () => {
+    uploadBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
       fileInput.click();
     });
 
@@ -82,7 +120,7 @@ function Banner_setupEventListeners() {
       if (!file) return;
 
       try {
-        window.showToast('Enviando imagem...');
+        window.showToast('Enviando banner...');
         const url = await window.uploadImage(file, 'banners');
         
         // Atualizar no banco
@@ -117,6 +155,41 @@ function Banner_setupEventListeners() {
     });
   }
 
+  // Upload de Foto/Ícone do App
+  if (appIconBtn && appIconInput) {
+    appIconBtn.addEventListener('click', () => {
+      appIconInput.click();
+    });
+
+    appIconInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      try {
+        window.showToast('Enviando foto do aplicativo...');
+        const url = await window.uploadImage(file, 'app-icons');
+
+        // Atualizar no banco
+        const { error } = await window.supabase
+          .from('site_config')
+          .update({ app_icon_url: url, updated_at: new Date().toISOString() })
+          .eq('id', window.AppState.siteConfig.id);
+
+        if (error) throw error;
+
+        window.AppState.siteConfig.app_icon_url = url;
+        Banner_applyAppIcon(url);
+        window.showToast('Ícone do app atualizado com sucesso!');
+
+      } catch (error) {
+        console.error('Erro no upload do ícone:', error);
+        window.showToast('Erro ao atualizar foto do app', 'error');
+      } finally {
+        appIconInput.value = '';
+      }
+    });
+  }
+
   // Título editável (contenteditable h1)
   if (titleEl) {
     titleEl.addEventListener('blur', async () => {
@@ -145,6 +218,37 @@ function Banner_setupEventListeners() {
       if (e.key === 'Enter') {
         e.preventDefault();
         titleEl.blur();
+      }
+    });
+  }
+
+  // Subtítulo editável (contenteditable p)
+  if (subtitleEl) {
+    subtitleEl.addEventListener('blur', async () => {
+      const newSubtitle = subtitleEl.textContent.trim();
+      if (!newSubtitle || newSubtitle === window.AppState.siteConfig.subtitle) return;
+
+      try {
+        const { error } = await window.supabase
+          .from('site_config')
+          .update({ subtitle: newSubtitle, updated_at: new Date().toISOString() })
+          .eq('id', window.AppState.siteConfig.id);
+
+        if (error) throw error;
+        
+        window.AppState.siteConfig.subtitle = newSubtitle;
+        window.showToast('Subtítulo salvo!');
+      } catch (error) {
+        console.error('Erro ao salvar subtítulo:', error);
+        window.showToast('Erro ao salvar subtítulo', 'error');
+        subtitleEl.textContent = window.AppState.siteConfig.subtitle;
+      }
+    });
+
+    subtitleEl.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        subtitleEl.blur();
       }
     });
   }
