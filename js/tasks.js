@@ -24,6 +24,8 @@ window.Tasks_fetchAll = async function() {
 
   window.AppState.tasks = data || [];
   window.Tasks_render();
+  if (window.Folders_render) window.Folders_render();
+  if (window.Calendar_render) window.Calendar_render();
 };
 
 window.Tasks_render = function() {
