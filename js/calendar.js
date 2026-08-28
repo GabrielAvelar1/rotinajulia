@@ -405,6 +405,7 @@ window.Calendar_renderUpcoming = function() {
   // Botão editar tarefa no upcoming
   container.querySelectorAll('.upcoming-edit-btn').forEach(btn => {
     btn.addEventListener('click', (e) => {
+      e.stopPropagation();
       const id = e.currentTarget.dataset.id;
       const task = window.AppState.tasks.find(t => t.id === id);
       if (!task) return;
@@ -427,6 +428,18 @@ window.Calendar_renderUpcoming = function() {
       });
 
       window.showModal('task-modal');
+    });
+  });
+
+  // Toque na tarefa do upcoming para exibir botão de editar
+  container.querySelectorAll('.upcoming-task').forEach(row => {
+    row.addEventListener('click', (e) => {
+      if (e.target.closest('.upcoming-checkbox') || e.target.closest('.upcoming-edit-btn')) return;
+      const wasActive = row.classList.contains('active');
+      container.querySelectorAll('.upcoming-task').forEach(r => r.classList.remove('active'));
+      if (!wasActive) {
+        row.classList.add('active');
+      }
     });
   });
 };

@@ -268,6 +268,14 @@ window.Tasks_setupEventListeners = function() {
             window.showToast('Erro ao excluir', 'error');
           }
         }
+        return;
+      }
+
+      // Ao clicar na linha (em celular ou desktop), alternar visibilidade dos botões
+      const wasActive = tr.classList.contains('active');
+      tbody.querySelectorAll('.task-row').forEach(r => r.classList.remove('active'));
+      if (!wasActive) {
+        tr.classList.add('active');
       }
     });
   }

@@ -229,6 +229,17 @@ window.Routines_init = async function() {
           console.error(err);
           window.showToast?.('Erro ao deletar hábito.', 'error');
         }
+        return;
+      }
+
+      // Ao clicar no hábito, alternar exibição dos botões
+      const item = e.target.closest('.routine-item');
+      if (item && !e.target.closest('.routine-checkbox')) {
+        const wasActive = item.classList.contains('active');
+        list.querySelectorAll('.routine-item').forEach(i => i.classList.remove('active'));
+        if (!wasActive) {
+          item.classList.add('active');
+        }
       }
     });
   }

@@ -1229,27 +1229,52 @@ body {
 /* Task Table Cells */
 .task-cell-checkbox { width: 30px; }
 .task-cell-actions { width: 60px; text-align: right; white-space: nowrap; }
+
 .task-edit-btn,
-.task-delete-btn {
+.task-delete-btn,
+.upcoming-edit-btn,
+.routine-edit-btn,
+.routine-delete-btn {
   background: none;
   border: none;
   cursor: pointer;
-  opacity: 0.6;
+  opacity: 0;
+  visibility: hidden;
   font-size: 0.9rem;
   padding: 2px 4px;
-  transition: all 0.2s;
+  transition: all 0.2s ease;
+  pointer-events: none;
 }
-.task-edit-btn:hover {
-  opacity: 1;
-  transform: scale(1.15);
-}
-.task-delete-btn:hover {
-  opacity: 1;
-  transform: scale(1.15);
-}
+
+/* Exibir botões apenas ao passar o mouse ou ao tocar/selecionar a tarefa */
 .task-row:hover .task-edit-btn,
-.task-row:hover .task-delete-btn {
-  opacity: 1;
+.task-row:hover .task-delete-btn,
+.task-row.active .task-edit-btn,
+.task-row.active .task-delete-btn,
+.upcoming-task:hover .upcoming-edit-btn,
+.upcoming-task.active .upcoming-edit-btn,
+.routine-item:hover .routine-edit-btn,
+.routine-item:hover .routine-delete-btn,
+.routine-item.active .routine-edit-btn,
+.routine-item.active .routine-delete-btn {
+  opacity: 0.85;
+  visibility: visible;
+  pointer-events: auto;
+}
+
+.task-edit-btn:hover,
+.task-delete-btn:hover,
+.upcoming-edit-btn:hover,
+.routine-edit-btn:hover,
+.routine-delete-btn:hover {
+  opacity: 1 !important;
+  transform: scale(1.15);
+}
+
+.task-row.active,
+.upcoming-task.active,
+.routine-item.active {
+  background-color: var(--bg-card-hover);
 }
 
 /* Overview Header & Sort Dropdown */
