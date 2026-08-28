@@ -119,10 +119,13 @@ window.App_bootstrap = async function() {
 };
 
 // Inicialização principal
-document.addEventListener('DOMContentLoaded', () => {
-  // Configurar listener de estado de autenticação
-  window.supabase.auth.onAuthStateChange(async (event, session) => {
-    if (session) {
+document.addEventListener('DOMContentLoaded', async () => {
+  let isBootstrapping = false;
+
+  async function handleSession(session) {
+    if (isBootstrapping) return;
+    if (session && session.user) {
+      isBootstrapping = true;
       window.AppState.user = session.user;
       document.getElementById('main-content').style.display = 'block';
       document.getElementById('auth-screen').style.display = 'none';
@@ -130,19 +133,37 @@ document.addEventListener('DOMContentLoaded', () => {
       const emailEl = document.getElementById('user-email');
       if (emailEl) emailEl.textContent = session.user.email;
 
-      // Inicializar e carregar todos os dados de forma sincronizada
-      if (!window.AppState.modulesInitialized) {
-        window.AppState.modulesInitialized = true;
-        await window.App_bootstrap();
-      } else {
-        // Se a sessão já estava ativa, apenas re-sincronizar
-        window.App_refreshAll();
-      }
+      await window.App_bootstrap();
+      isBootstrapping = false;
     } else {
       window.AppState.user = null;
-      window.AppState.modulesInitialized = false;
       document.getElementById('main-content').style.display = 'none';
       document.getElementById('auth-screen').style.display = 'block';
+    }
+  }
+
+  // 1. Obter sessão salva no localStorage imediatamente no reload (F5)
+  try {
+    const { data: { session } } = await window.supabase.auth.getSession();
+    if (session) {
+      await handleSession(session);
+    }
+  } catch (err) {
+    console.error('Erro ao recuperar sessão:', err);
+  }
+
+  // 2. Escutar alterações de autenticação (Login, Logout, Token)
+  window.supabase.auth.onAuthStateChange(async (event, session) => {
+    if (event === 'SIGNED_OUT') {
+      window.AppState.user = null;
+      document.getElementById('main-content').style.display = 'none';
+      document.getElementById('auth-screen').style.display = 'block';
+    } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'INITIAL_SESSION') {
+      if (session && session.user) {
+        if (!window.AppState.user || window.AppState.user.id !== session.user.id) {
+          await handleSession(session);
+        }
+      }
     }
   });
 

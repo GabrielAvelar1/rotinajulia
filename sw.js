@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rotina-julia-v4';
+const CACHE_NAME = 'rotina-julia-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -16,22 +16,52 @@ const ASSETS = [
   './calendario.png'
 ];
 
-// Instalação do Service Worker e cache dos recursos estáticos
+// Instalação do Service Worker
 self.addEventListener('install', (event) => {
+  self.skipWaiting();
   event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then(cache => cache.addAll(ASSETS))
+    caches.open(CACHE_NAME).then((cache) => cache.addAll(ASSETS))
   );
 });
 
-// Interceptar as requisições para servir do cache caso esteja offline
+// Ativação e limpeza de caches antigos
+self.addEventListener('activate', (event) => {
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cache) => {
+          if (cache !== CACHE_NAME) {
+            console.log('Limpando cache antigo do Service Worker:', cache);
+            return caches.delete(cache);
+          }
+        })
+      );
+    }).then(() => self.clients.claim())
+  );
+});
+
+// Network-First para arquivos locais: Sempre busca a versão mais recente na rede.
+// Se a rede falhar (ex: offline), serve do cache.
 self.addEventListener('fetch', (event) => {
-  // Apenas tentar cachear requisições para a mesma origem (evita bugar APIs do Supabase)
+  if (event.request.method !== 'GET') return;
+
+  // Apenas gerenciar recursos do próprio domínio
   if (event.request.url.startsWith(self.location.origin)) {
     event.respondWith(
-      caches.match(event.request).then((cachedResponse) => {
-        return cachedResponse || fetch(event.request);
-      })
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const responseToCache = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => {
+              cache.put(event.request, responseToCache);
+            });
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          // Se estiver offline ou a rede falhar, pega do cache
+          return caches.match(event.request);
+        })
     );
   }
 });
