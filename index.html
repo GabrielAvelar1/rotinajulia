@@ -275,21 +275,13 @@
                 <input type="color" id="folder-color-input" class="input-color" value="#8b5cf6">
             </div>
             <div class="form-group">
-                <label>Imagem de Capa</label>
+                <label>Imagem de Capa (Arraste a foto para enquadrar)</label>
                 <input type="file" id="folder-cover-input" accept="image/*">
-                <div class="cover-preview-wrapper" style="position:relative; margin-top:8px;">
-                    <img id="folder-cover-preview" class="cover-preview" style="display:none; width:100%; height:120px; object-fit:cover; border-radius:8px;">
+                <div id="cover-crop-container" class="cover-crop-container" style="display:none; margin-top:8px;">
+                    <img id="folder-cover-preview" class="cover-preview" style="width:100%; height:100%; object-fit:cover; pointer-events:none;">
+                    <div class="crop-hint-badge"><i class="fas fa-arrows-alt"></i> Arraste a imagem</div>
                 </div>
-            </div>
-            <div class="form-group">
-                <label>Enquadramento da Capa</label>
-                <select id="folder-cover-position-select" class="select">
-                    <option value="center" selected>Centro (Padrão)</option>
-                    <option value="top">Topo (Alinhar no topo)</option>
-                    <option value="bottom">Fundo (Alinhar embaixo)</option>
-                    <option value="25%">Superior (25%)</option>
-                    <option value="75%">Inferior (75%)</option>
-                </select>
+                <input type="hidden" id="folder-cover-position-input" value="50% 50%">
             </div>
             <div class="modal-actions">
                 <button id="folder-cancel-btn" class="btn btn-ghost">Cancelar</button>

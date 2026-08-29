@@ -37,9 +37,9 @@ window.Folders_render = function() {
     card.setAttribute('data-folder-id', folder.id);
     card.style.position = 'relative';
 
-    const pos = folder.cover_position || 'center';
+    const pos = folder.cover_position || '50% 50%';
     const coverHtml = folder.cover_url 
-      ? `<div class="folder-cover" style="background-image: url('${folder.cover_url}'); background-position: center ${pos};"></div>`
+      ? `<div class="folder-cover" style="background-image: url('${folder.cover_url}'); background-position: ${pos};"></div>`
       : `<div class="folder-cover placeholder-cover"></div>`;
 
     card.innerHTML = `
@@ -73,14 +73,89 @@ window.Folders_setupEventListeners = function() {
   const saveBtn = document.getElementById('folder-save-btn');
   const cancelBtn = document.getElementById('folder-cancel-btn');
   const coverInput = document.getElementById('folder-cover-input');
-  const positionSelect = document.getElementById('folder-cover-position-select');
   const preview = document.getElementById('folder-cover-preview');
+  const cropContainer = document.getElementById('cover-crop-container');
+  const posInput = document.getElementById('folder-cover-position-input');
 
-  // Preview position change
-  if (positionSelect && preview) {
-    positionSelect.addEventListener('change', (e) => {
-      preview.style.objectPosition = `center ${e.target.value}`;
-    });
+  let isDragging = false;
+  let startX = 0, startY = 0;
+  let currentPosX = 50, currentPosY = 50;
+
+  function parsePosition(posStr) {
+    if (!posStr) return { x: 50, y: 50 };
+    if (posStr === 'center') return { x: 50, y: 50 };
+    if (posStr === 'top') return { x: 50, y: 0 };
+    if (posStr === 'bottom') return { x: 50, y: 100 };
+    if (posStr === '25%') return { x: 50, y: 25 };
+    if (posStr === '75%') return { x: 50, y: 75 };
+    
+    const parts = posStr.split(' ');
+    if (parts.length === 2) {
+      const x = parseFloat(parts[0]) || 50;
+      const y = parseFloat(parts[1]) || 50;
+      return { x, y };
+    } else if (parts.length === 1) {
+      const y = parseFloat(parts[0]) || 50;
+      return { x: 50, y };
+    }
+    return { x: 50, y: 50 };
+  }
+
+  function updatePosition(x, y) {
+    currentPosX = Math.max(0, Math.min(100, x));
+    currentPosY = Math.max(0, Math.min(100, y));
+    const val = `${currentPosX.toFixed(1)}% ${currentPosY.toFixed(1)}%`;
+    if (preview) preview.style.objectPosition = val;
+    if (posInput) posInput.value = val;
+  }
+
+  if (cropContainer) {
+    const handleDragStart = (e) => {
+      isDragging = true;
+      cropContainer.classList.add('dragging');
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      startX = clientX;
+      startY = clientY;
+      
+      const parsed = parsePosition(posInput ? posInput.value : '50% 50%');
+      currentPosX = parsed.x;
+      currentPosY = parsed.y;
+    };
+
+    const handleDragMove = (e) => {
+      if (!isDragging) return;
+      const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+      const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+      
+      const rect = cropContainer.getBoundingClientRect();
+      const deltaX = clientX - startX;
+      const deltaY = clientY - startY;
+      
+      const newX = currentPosX - (deltaX / rect.width) * 70;
+      const newY = currentPosY - (deltaY / rect.height) * 70;
+      
+      updatePosition(newX, newY);
+      startX = clientX;
+      startY = clientY;
+      
+      if (e.cancelable) e.preventDefault();
+    };
+
+    const handleDragEnd = () => {
+      if (isDragging) {
+        isDragging = false;
+        cropContainer.classList.remove('dragging');
+      }
+    };
+
+    cropContainer.addEventListener('mousedown', handleDragStart);
+    window.addEventListener('mousemove', handleDragMove);
+    window.addEventListener('mouseup', handleDragEnd);
+
+    cropContainer.addEventListener('touchstart', handleDragStart, { passive: false });
+    window.addEventListener('touchmove', handleDragMove, { passive: false });
+    window.addEventListener('touchend', handleDragEnd);
   }
   
   if (addBtn) {
@@ -89,12 +164,12 @@ window.Folders_setupEventListeners = function() {
       document.getElementById('folder-name-input').value = '';
       document.getElementById('folder-icon-input').value = '📁';
       document.getElementById('folder-color-input').value = '#8b5cf6';
-      if (positionSelect) positionSelect.value = 'center';
+      if (posInput) posInput.value = '50% 50%';
       if (preview) {
         preview.src = '';
-        preview.style.display = 'none';
-        preview.style.objectPosition = 'center center';
+        preview.style.objectPosition = '50% 50%';
       }
+      if (cropContainer) cropContainer.style.display = 'none';
       if (coverInput) coverInput.value = '';
       window.showModal('folder-modal');
     });
@@ -112,11 +187,11 @@ window.Folders_setupEventListeners = function() {
       if (file) {
         const reader = new FileReader();
         reader.onload = function(e) {
-          if (preview) {
+          if (preview && cropContainer) {
             preview.src = e.target.result;
-            preview.style.display = 'block';
-            const pos = positionSelect ? positionSelect.value : 'center';
-            preview.style.objectPosition = `center ${pos}`;
+            cropContainer.style.display = 'block';
+            if (posInput) posInput.value = '50% 50%';
+            preview.style.objectPosition = '50% 50%';
           }
         };
         reader.readAsDataURL(file);
@@ -140,16 +215,18 @@ window.Folders_setupEventListeners = function() {
         document.getElementById('folder-name-input').value = folder.name;
         document.getElementById('folder-icon-input').value = folder.icon || '📁';
         document.getElementById('folder-color-input').value = folder.color || '#8b5cf6';
-        if (positionSelect) positionSelect.value = folder.cover_position || 'center';
         
-        if (preview) {
+        const pos = folder.cover_position || '50% 50%';
+        if (posInput) posInput.value = pos;
+        
+        if (preview && cropContainer) {
           if (folder.cover_url) {
             preview.src = folder.cover_url;
-            preview.style.display = 'block';
-            preview.style.objectPosition = `center ${folder.cover_position || 'center'}`;
+            cropContainer.style.display = 'block';
+            preview.style.objectPosition = pos;
           } else {
             preview.src = '';
-            preview.style.display = 'none';
+            cropContainer.style.display = 'none';
           }
         }
         if (coverInput) coverInput.value = '';
@@ -186,7 +263,7 @@ window.Folders_setupEventListeners = function() {
       const name = document.getElementById('folder-name-input').value.trim();
       const icon = document.getElementById('folder-icon-input').value.trim();
       const color = document.getElementById('folder-color-input').value;
-      const cover_position = positionSelect ? positionSelect.value : 'center';
+      const cover_position = posInput ? posInput.value : '50% 50%';
       const file = coverInput ? coverInput.files[0] : null;
 
       if (!name) {
@@ -228,7 +305,7 @@ window.Folders_setupEventListeners = function() {
           window.showToast('Pasta atualizada!');
         } else {
           // Create
-          folderData.position = window.AppState.folders.length; // Adicionar ao final
+          folderData.position = window.AppState.folders.length;
           const { data, error } = await window.supabase
             .from('folders')
             .insert([folderData])

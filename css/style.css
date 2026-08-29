@@ -1378,3 +1378,40 @@ body {
   border-color: var(--primary);
 }
 
+/* Drag to Crop Folder Cover */
+.cover-crop-container {
+  position: relative;
+  width: 100%;
+  height: 140px;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 2px dashed var(--primary);
+  cursor: grab;
+  user-select: none;
+  background-color: var(--bg-dark);
+  touch-action: none;
+  transition: border-color 0.2s;
+}
+.cover-crop-container:active,
+.cover-crop-container.dragging {
+  cursor: grabbing;
+  border-color: var(--secondary);
+}
+.crop-hint-badge {
+  position: absolute;
+  bottom: 8px;
+  right: 8px;
+  background: rgba(15, 15, 20, 0.75);
+  color: #fff;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  pointer-events: none;
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.4);
+}
+
