@@ -165,19 +165,33 @@ body {
   gap: 8px;
   padding: 8px 14px;
   border-radius: 20px;
-  background: rgba(15, 15, 20, 0.75);
+  background: rgba(15, 15, 20, 0.8);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.2);
+  border: 1px solid rgba(255, 255, 255, 0.25);
   color: #fff;
   font-size: 0.85rem;
   font-weight: 500;
   cursor: pointer;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  transition: all 0.2s ease;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateY(-4px);
+  transition: opacity 0.25s ease, visibility 0.25s ease, transform 0.25s ease;
 }
+
+/* Exibir botão apenas ao passar o mouse ou ao tocar no banner */
+.banner-container:hover .banner-upload-pill,
+.banner-container.active .banner-upload-pill {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateY(0);
+}
+
 .banner-upload-pill:hover,
 .banner-upload-pill:active {
-  background: rgba(139, 92, 246, 0.85);
+  background: rgba(139, 92, 246, 0.9);
   border-color: var(--primary);
   transform: translateY(-2px);
   box-shadow: 0 4px 16px var(--glow);

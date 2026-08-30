@@ -108,6 +108,21 @@ function Banner_setupEventListeners() {
   const appIconBtn = document.getElementById('app-icon-btn');
   const appIconInput = document.getElementById('app-icon-file-input');
 
+  // Toque/Clique no banner para exibir/ocultar botão de troca
+  const bannerContainer = document.querySelector('.banner-container');
+  if (bannerContainer) {
+    bannerContainer.addEventListener('click', (e) => {
+      if (e.target.closest('#banner-upload-btn')) return;
+      bannerContainer.classList.toggle('active');
+    });
+
+    document.addEventListener('click', (e) => {
+      if (!e.target.closest('.banner-container')) {
+        bannerContainer.classList.remove('active');
+      }
+    });
+  }
+
   // Upload de Banner
   if (uploadBtn && fileInput) {
     uploadBtn.addEventListener('click', (e) => {
