@@ -111,24 +111,46 @@ window.Routines_init = async function() {
       
       let res;
       if (id) {
-        res = await window.supabase.from('routines').update({ title, icon, days_of_week }).eq('id', id).select();
+        let updatePayload = { title, icon, days_of_week };
+        res = await window.supabase.from('routines').update(updatePayload).eq('id', id).select();
+
+        // Se falhar por causa da coluna days_of_week não existir no banco
+        if (res.error && (res.error.message?.includes('days_of_week') || res.error.code === '42703' || res.error.code === 'PGRST204')) {
+          delete updatePayload.days_of_week;
+          res = await window.supabase.from('routines').update(updatePayload).eq('id', id).select();
+          if (res.data && res.data[0]) {
+            res.data[0].days_of_week = days_of_week;
+          }
+        }
       } else {
-        res = await window.supabase.from('routines').insert([{
+        let insertPayload = {
           user_id: user.id,
           title,
           icon,
           days_of_week,
           position: window.AppState.routines.length
-        }]).select();
+        };
+        res = await window.supabase.from('routines').insert([insertPayload]).select();
+
+        // Se falhar por causa da coluna days_of_week não existir no banco
+        if (res.error && (res.error.message?.includes('days_of_week') || res.error.code === '42703' || res.error.code === 'PGRST204')) {
+          delete insertPayload.days_of_week;
+          res = await window.supabase.from('routines').insert([insertPayload]).select();
+          if (res.data && res.data[0]) {
+            res.data[0].days_of_week = days_of_week;
+          }
+        }
       }
       
       if (res.error) throw res.error;
       
       if (id) {
         const idx = window.AppState.routines.findIndex(r => r.id === id);
-        if (idx !== -1) window.AppState.routines[idx] = res.data[0];
+        const updatedRoutine = (res.data && res.data[0]) ? res.data[0] : { id, title, icon, days_of_week };
+        if (idx !== -1) window.AppState.routines[idx] = updatedRoutine;
       } else {
-        window.AppState.routines.push(res.data[0]);
+        const newRoutine = (res.data && res.data[0]) ? res.data[0] : { title, icon, days_of_week, user_id: user.id };
+        window.AppState.routines.push(newRoutine);
       }
       
       window.Routines_render();
@@ -137,7 +159,7 @@ window.Routines_init = async function() {
       window.showToast?.('Rotina salva com sucesso!', 'success');
     } catch (err) {
       console.error(err);
-      window.showToast?.('Erro ao salvar rotina.', 'error');
+      window.showToast?.('Erro ao salvar rotina: ' + (err.message || 'Verifique o banco'), 'error');
     }
   });
 

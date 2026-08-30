@@ -35,10 +35,21 @@ window.Tasks_render = function() {
 
   tbody.innerHTML = '';
 
+  const todayStr = window.getLocalDateString ? window.getLocalDateString() : new Date().toISOString().split('T')[0];
   const filter = window.AppState.currentOverviewFilter;
-  let filteredTasks = filter === 'all' 
-    ? [...window.AppState.tasks]
-    : window.AppState.tasks.filter(t => t.folder_id === filter);
+
+  // Filtrar tarefas para o Overview:
+  // - Exibir todas as tarefas pendentes (!completed)
+  // - Exibir tarefas concluídas SOMENTE se a data for HOJE (completed && due_date === todayStr)
+  let filteredTasks = window.AppState.tasks.filter(task => {
+    if (filter !== 'all' && task.folder_id !== filter) {
+      return false;
+    }
+    if (!task.completed) {
+      return true;
+    }
+    return task.due_date === todayStr;
+  });
 
   // Ordenação das tarefas
   const sortMode = window.AppState.taskSort || 'date_asc';

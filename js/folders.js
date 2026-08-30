@@ -292,28 +292,56 @@ window.Folders_setupEventListeners = function() {
 
         if (id) {
           // Update
-          const { data, error } = await window.supabase
+          let updateData = { ...folderData };
+          let res = await window.supabase
             .from('folders')
-            .update(folderData)
+            .update(updateData)
             .eq('id', id)
-            .select()
-            .single();
+            .select();
 
-          if (error) throw error;
+          // Se falhar por causa da coluna cover_position não existir no banco
+          if (res.error && (res.error.message?.includes('cover_position') || res.error.code === '42703' || res.error.code === 'PGRST204')) {
+            delete updateData.cover_position;
+            res = await window.supabase
+              .from('folders')
+              .update(updateData)
+              .eq('id', id)
+              .select();
+            if (res.data && res.data[0]) {
+              res.data[0].cover_position = folderData.cover_position;
+            }
+          }
+
+          if (res.error) throw res.error;
+
+          const updatedFolder = (res.data && res.data[0]) ? res.data[0] : { id, ...folderData };
           const index = window.AppState.folders.findIndex(f => f.id === id);
-          if (index !== -1) window.AppState.folders[index] = data;
+          if (index !== -1) window.AppState.folders[index] = updatedFolder;
           window.showToast('Pasta atualizada!');
         } else {
           // Create
-          folderData.position = window.AppState.folders.length;
-          const { data, error } = await window.supabase
+          let insertData = { ...folderData, position: window.AppState.folders.length };
+          let res = await window.supabase
             .from('folders')
-            .insert([folderData])
-            .select()
-            .single();
+            .insert([insertData])
+            .select();
 
-          if (error) throw error;
-          window.AppState.folders.push(data);
+          // Se falhar por causa da coluna cover_position não existir no banco
+          if (res.error && (res.error.message?.includes('cover_position') || res.error.code === '42703' || res.error.code === 'PGRST204')) {
+            delete insertData.cover_position;
+            res = await window.supabase
+              .from('folders')
+              .insert([insertData])
+              .select();
+            if (res.data && res.data[0]) {
+              res.data[0].cover_position = folderData.cover_position;
+            }
+          }
+
+          if (res.error) throw res.error;
+
+          const newFolder = (res.data && res.data[0]) ? res.data[0] : insertData;
+          window.AppState.folders.push(newFolder);
           window.showToast('Pasta criada!');
         }
 
@@ -323,7 +351,7 @@ window.Folders_setupEventListeners = function() {
 
       } catch (error) {
         console.error('Erro ao salvar pasta:', error);
-        window.showToast('Erro ao salvar pasta', 'error');
+        window.showToast('Erro ao salvar pasta: ' + (error.message || 'Verifique o banco'), 'error');
       } finally {
         saveBtn.disabled = false;
         saveBtn.textContent = 'Salvar';
