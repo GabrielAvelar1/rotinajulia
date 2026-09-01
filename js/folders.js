@@ -232,6 +232,7 @@ window.Folders_setupEventListeners = function() {
         if (coverInput) coverInput.value = '';
         
         window.showModal('folder-modal');
+        return;
       }
 
       if (deleteBtn) {
@@ -253,8 +254,151 @@ window.Folders_setupEventListeners = function() {
             window.showToast('Erro ao excluir pasta', 'error');
           }
         }
+        return;
       }
+
+      // Ao clicar no card da pasta (sem ser nos botões de editar/excluir), abre os detalhes da pasta
+      window.AppState.currentFolderDetailId = folder.id;
+      window.AppState.currentFolderDetailFilter = 'all';
+      window.Folders_renderDetailModal(folder.id);
+      window.showModal('folder-detail-modal');
     });
+  }
+
+  // Eventos do Modal de Detalhes da Pasta
+  const folderDetailModal = document.getElementById('folder-detail-modal');
+  if (folderDetailModal) {
+    document.getElementById('folder-detail-close-btn')?.addEventListener('click', () => {
+      window.hideModal('folder-detail-modal');
+    });
+    document.getElementById('folder-detail-close-bottom-btn')?.addEventListener('click', () => {
+      window.hideModal('folder-detail-modal');
+    });
+
+    // Filtros por status dentro da pasta (Todas, Pendentes, Concluídas)
+    const folderTabs = document.getElementById('folder-detail-tabs');
+    if (folderTabs) {
+      folderTabs.addEventListener('click', (e) => {
+        const tab = e.target.closest('.filter-tab');
+        if (tab) {
+          folderTabs.querySelectorAll('.filter-tab').forEach(t => t.classList.remove('active'));
+          tab.classList.add('active');
+          window.AppState.currentFolderDetailFilter = tab.getAttribute('data-filter') || 'all';
+          if (window.AppState.currentFolderDetailId) {
+            window.Folders_renderDetailModal(window.AppState.currentFolderDetailId);
+          }
+        }
+      });
+    }
+
+    // Botão Adicionar Tarefa nesta Pasta
+    document.getElementById('folder-detail-add-task-btn')?.addEventListener('click', () => {
+      const folderId = window.AppState.currentFolderDetailId;
+      document.getElementById('task-modal-title').textContent = 'Nova Tarefa';
+      document.getElementById('task-id-input').value = '';
+      document.getElementById('task-title-input').value = '';
+      document.getElementById('task-folder-select').value = folderId || '';
+      document.getElementById('task-date-input').value = window.getLocalDateString ? window.getLocalDateString() : '';
+      document.getElementById('task-priority-select').value = 'media';
+      document.getElementById('task-color-input').value = '#8b5cf6';
+      
+      const colorOptions = document.querySelectorAll('#task-color-options .color-option');
+      colorOptions.forEach((opt, idx) => {
+        if (idx === 0) opt.classList.add('selected');
+        else opt.classList.remove('selected');
+      });
+
+      window.showModal('task-modal');
+    });
+
+    // Eventos na lista de tarefas da pasta (checkbox, editar, excluir, toque para ações)
+    const taskList = document.getElementById('folder-detail-tasks-list');
+    if (taskList) {
+      taskList.addEventListener('click', async (e) => {
+        const item = e.target.closest('.folder-task-item');
+        if (!item) return;
+        const taskId = item.getAttribute('data-task-id');
+        const task = window.AppState.tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        // Checkbox Toggle
+        if (e.target.classList.contains('task-checkbox') || e.target.closest('.task-checkbox')) {
+          const checkbox = item.querySelector('.task-checkbox');
+          const newCompleted = !task.completed;
+          if (e.target.type !== 'checkbox') checkbox.checked = newCompleted;
+
+          try {
+            const { error } = await window.supabase
+              .from('tasks')
+              .update({ completed: newCompleted })
+              .eq('id', task.id);
+            if (error) throw error;
+
+            task.completed = newCompleted;
+            if (window.AppState.currentFolderDetailId) {
+              window.Folders_renderDetailModal(window.AppState.currentFolderDetailId);
+            }
+            if (window.App_refreshAll) window.App_refreshAll();
+          } catch (err) {
+            console.error(err);
+            checkbox.checked = !newCompleted;
+            window.showToast('Erro ao atualizar status', 'error');
+          }
+          return;
+        }
+
+        // Editar Tarefa
+        if (e.target.classList.contains('task-edit-btn') || e.target.closest('.task-edit-btn')) {
+          document.getElementById('task-modal-title').textContent = 'Editar Tarefa';
+          document.getElementById('task-id-input').value = task.id;
+          document.getElementById('task-title-input').value = task.title;
+          document.getElementById('task-folder-select').value = task.folder_id || '';
+          document.getElementById('task-date-input').value = task.due_date || '';
+          document.getElementById('task-priority-select').value = task.priority || 'media';
+          document.getElementById('task-color-input').value = task.color || '#8b5cf6';
+          
+          const colorOptions = document.querySelectorAll('#task-color-options .color-option');
+          colorOptions.forEach(opt => {
+            if (opt.getAttribute('data-color') === task.color) {
+              opt.classList.add('selected');
+            } else {
+              opt.classList.remove('selected');
+            }
+          });
+
+          window.showModal('task-modal');
+          return;
+        }
+
+        // Excluir Tarefa
+        if (e.target.classList.contains('task-delete-btn') || e.target.closest('.task-delete-btn')) {
+          if (confirm(`Excluir a tarefa "${task.title}"?`)) {
+            try {
+              const { error } = await window.supabase.from('tasks').delete().eq('id', task.id);
+              if (error) throw error;
+
+              window.AppState.tasks = window.AppState.tasks.filter(t => t.id !== task.id);
+              if (window.AppState.currentFolderDetailId) {
+                window.Folders_renderDetailModal(window.AppState.currentFolderDetailId);
+              }
+              if (window.App_refreshAll) window.App_refreshAll();
+              window.showToast('Tarefa excluída');
+            } catch (err) {
+              console.error(err);
+              window.showToast('Erro ao excluir tarefa', 'error');
+            }
+          }
+          return;
+        }
+
+        // Toque na linha para exibir os botões no celular
+        const wasActive = item.classList.contains('active');
+        taskList.querySelectorAll('.folder-task-item').forEach(r => r.classList.remove('active'));
+        if (!wasActive) {
+          item.classList.add('active');
+        }
+      });
+    }
   }
 
   if (saveBtn) {
@@ -358,4 +502,95 @@ window.Folders_setupEventListeners = function() {
       }
     });
   }
+};
+
+window.Folders_renderDetailModal = function(folderId) {
+  const folder = window.AppState.folders.find(f => f.id === folderId);
+  if (!folder) return;
+
+  const banner = document.getElementById('folder-detail-banner');
+  const iconEl = document.getElementById('folder-detail-icon');
+  const titleEl = document.getElementById('folder-detail-title');
+  const statsEl = document.getElementById('folder-detail-stats');
+  const taskList = document.getElementById('folder-detail-tasks-list');
+
+  // Configurar banner da pasta
+  if (banner) {
+    const pos = folder.cover_position || '50% 50%';
+    if (folder.cover_url) {
+      banner.style.backgroundImage = `url('${folder.cover_url}')`;
+      banner.style.backgroundPosition = pos;
+    } else {
+      banner.style.backgroundImage = `linear-gradient(135deg, #1a1a2e 0%, #3b1b54 50%, #2d1b69 100%)`;
+      banner.style.backgroundPosition = 'center center';
+    }
+  }
+
+  if (iconEl) iconEl.textContent = folder.icon || '📁';
+  if (titleEl) {
+    titleEl.textContent = folder.name;
+    titleEl.style.color = folder.color || '#fff';
+  }
+
+  // Filtrar tarefas desta pasta
+  const allFolderTasks = window.AppState.tasks.filter(t => t.folder_id === folder.id);
+  const pendingTasks = allFolderTasks.filter(t => !t.completed);
+  const completedTasks = allFolderTasks.filter(t => t.completed);
+
+  if (statsEl) {
+    statsEl.textContent = `${pendingTasks.length} pendentes • ${completedTasks.length} concluídas`;
+  }
+
+  // Aplicar filtro da aba ativa (all, pending, completed)
+  const currentTab = window.AppState.currentFolderDetailFilter || 'all';
+  let displayTasks = allFolderTasks;
+  if (currentTab === 'pending') displayTasks = pendingTasks;
+  if (currentTab === 'completed') displayTasks = completedTasks;
+
+  // Ordenar por data
+  displayTasks.sort((a, b) => {
+    if (!a.due_date) return 1;
+    if (!b.due_date) return -1;
+    return a.due_date.localeCompare(b.due_date);
+  });
+
+  if (!taskList) return;
+
+  if (displayTasks.length === 0) {
+    taskList.innerHTML = `<p class="empty-msg" style="text-align:center; padding:20px; color:var(--text-muted);">
+      Nenhuma tarefa ${currentTab === 'pending' ? 'pendente' : (currentTab === 'completed' ? 'concluída' : 'cadastrada')} nesta pasta.
+    </p>`;
+    return;
+  }
+
+  const priorityColors = {
+    'alta': '#ef4444',
+    'media': '#f59e0b',
+    'baixa': '#22c55e'
+  };
+
+  let html = '';
+  displayTasks.forEach(task => {
+    const isDone = task.completed;
+    const pColor = priorityColors[task.priority] || '#8b5cf6';
+    const pText = task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : 'Média';
+    const dateFormatted = task.due_date ? window.formatDate(task.due_date) : 'Sem data';
+
+    html += `
+      <div class="folder-task-item ${isDone ? 'completed' : ''}" data-task-id="${task.id}" style="${isDone ? 'opacity: 0.65;' : ''}">
+        <input type="checkbox" class="task-checkbox" ${isDone ? 'checked' : ''} data-id="${task.id}">
+        <div class="folder-task-title" style="${isDone ? 'text-decoration: line-through;' : ''}">
+          ${task.title}
+        </div>
+        <div class="folder-task-meta">
+          <span class="folder-task-date"><i class="far fa-calendar"></i> ${dateFormatted}</span>
+          <span class="badge" style="background-color: ${pColor}25; color: ${pColor}; border: 1px solid ${pColor}50;">${pText}</span>
+          <button class="task-edit-btn" data-id="${task.id}" title="Editar">✏️</button>
+          <button class="task-delete-btn" data-id="${task.id}" title="Excluir">🗑️</button>
+        </div>
+      </div>
+    `;
+  });
+
+  taskList.innerHTML = html;
 };

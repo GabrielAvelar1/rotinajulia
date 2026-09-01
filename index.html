@@ -423,6 +423,107 @@
         </div>
     </div>
 
+    <!-- Folder Detail Modal (Abrir pasta com tarefas) -->
+    <div id="folder-detail-modal" class="modal" style="display:none;">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content folder-detail-content">
+            <div id="folder-detail-banner" class="folder-detail-banner">
+                <button class="modal-close-btn" id="folder-detail-close-btn" title="Fechar">&times;</button>
+                <div class="folder-detail-header-overlay">
+                    <div class="folder-detail-icon" id="folder-detail-icon">📁</div>
+                    <div class="folder-detail-info">
+                        <h2 id="folder-detail-title" class="folder-detail-title">Nome da Pasta</h2>
+                        <span id="folder-detail-stats" class="folder-detail-stats">0 tarefas pendentes</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="folder-detail-body">
+                <div class="folder-detail-controls">
+                    <div class="filter-tabs filter-tabs-sm" id="folder-detail-tabs">
+                        <button class="filter-tab active" data-filter="all">Todas</button>
+                        <button class="filter-tab" data-filter="pending">Pendentes</button>
+                        <button class="filter-tab" data-filter="completed">Concluídas</button>
+                    </div>
+                    <button id="folder-detail-add-task-btn" class="btn btn-primary btn-sm">
+                        <i class="fas fa-plus"></i> Nova Tarefa
+                    </button>
+                </div>
+
+                <div class="folder-detail-tasks-container">
+                    <div id="folder-detail-tasks-list" class="folder-detail-tasks-list">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="padding: 0 20px 20px 20px;">
+                <button id="folder-detail-close-bottom-btn" class="btn btn-ghost">Fechar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Day Detail Modal (Ampliar dia do calendário e criar tarefas) -->
+    <div id="day-detail-modal" class="modal" style="display:none;">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content day-detail-content">
+            <div class="day-detail-header">
+                <div>
+                    <span class="day-detail-badge"><i class="far fa-calendar-alt"></i> Visão Diária</span>
+                    <h2 id="day-detail-date-title" class="day-detail-title">28 de Agosto de 2026</h2>
+                    <p id="day-detail-date-subtitle" class="day-detail-subtitle">Sexta-feira • 0 tarefas</p>
+                </div>
+                <button class="modal-close-btn" id="day-detail-close-btn" title="Fechar">&times;</button>
+            </div>
+
+            <div class="day-detail-body">
+                <!-- Lista de tarefas do dia -->
+                <div class="day-detail-tasks-section">
+                    <h4 class="day-detail-section-title"><i class="fas fa-tasks"></i> Tarefas deste dia</h4>
+                    <div id="day-detail-tasks-list" class="day-detail-tasks-list">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <!-- Formulário rápido para adicionar tarefas neste dia -->
+                <div class="day-quick-add-section">
+                    <h4 class="day-detail-section-title"><i class="fas fa-plus-circle"></i> Adicionar Tarefa para este dia</h4>
+                    <form id="day-quick-add-form" class="day-quick-add-form">
+                        <input type="hidden" id="day-quick-color-input" value="#8b5cf6">
+                        <div class="form-group" style="margin-bottom: 8px;">
+                            <input type="text" id="day-quick-title-input" class="input" placeholder="O que você precisa fazer?" required>
+                        </div>
+                        <div class="day-quick-row">
+                            <select id="day-quick-folder-select" class="select select-sm" style="flex: 1; min-width: 130px;">
+                                <option value="">Sem pasta</option>
+                            </select>
+                            <select id="day-quick-priority-select" class="select select-sm" style="width: 100px;">
+                                <option value="baixa">Baixa</option>
+                                <option value="media" selected>Média</option>
+                                <option value="alta">Alta</option>
+                            </select>
+                            <div id="day-quick-color-options" class="color-options-compact">
+                                <button type="button" class="color-option selected" data-color="#8b5cf6" style="background:#8b5cf6;"></button>
+                                <button type="button" class="color-option" data-color="#ef4444" style="background:#ef4444;"></button>
+                                <button type="button" class="color-option" data-color="#22c55e" style="background:#22c55e;"></button>
+                                <button type="button" class="color-option" data-color="#f59e0b" style="background:#f59e0b;"></button>
+                                <button type="button" class="color-option" data-color="#3b82f6" style="background:#3b82f6;"></button>
+                                <button type="button" class="color-option" data-color="#ec4899" style="background:#ec4899;"></button>
+                            </div>
+                            <button type="submit" id="day-quick-submit-btn" class="btn btn-primary btn-sm">
+                                <i class="fas fa-plus"></i> Adicionar
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 15px;">
+                <button id="day-detail-close-bottom-btn" class="btn btn-ghost">Fechar</button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/supabase.js"></script>
     <script src="js/player.js"></script>

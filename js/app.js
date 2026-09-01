@@ -33,6 +33,18 @@ window.App_refreshAll = function() {
   if (window.Calendar_render) window.Calendar_render();
   if (window.Routines_render) window.Routines_render();
   if (window.Charts_render) window.Charts_render();
+
+  // Re-render folder detail se o modal estiver aberto
+  const folderModal = document.getElementById('folder-detail-modal');
+  if (folderModal && folderModal.style.display !== 'none' && window.AppState.currentFolderDetailId && window.Folders_renderDetailModal) {
+    window.Folders_renderDetailModal(window.AppState.currentFolderDetailId);
+  }
+
+  // Re-render day detail se o modal estiver aberto
+  const dayModal = document.getElementById('day-detail-modal');
+  if (dayModal && dayModal.style.display !== 'none' && window.AppState.currentDayDetailDate && window.Calendar_renderDayDetail) {
+    window.Calendar_renderDayDetail(window.AppState.currentDayDetailDate);
+  }
 };
 
 window.showToast = function(message, type = 'success') {

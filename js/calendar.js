@@ -104,6 +104,156 @@ window.Calendar_init = function() {
     });
   });
 
+  // Day Detail Modal Handlers
+  document.getElementById('day-detail-close-btn')?.addEventListener('click', () => {
+    window.hideModal('day-detail-modal');
+  });
+  document.getElementById('day-detail-close-bottom-btn')?.addEventListener('click', () => {
+    window.hideModal('day-detail-modal');
+  });
+
+  // Color selection in day detail quick add
+  document.querySelectorAll('#day-quick-color-options .color-option').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      document.querySelectorAll('#day-quick-color-options .color-option').forEach(b => b.classList.remove('selected'));
+      e.currentTarget.classList.add('selected');
+      const colorInput = document.getElementById('day-quick-color-input');
+      if (colorInput) colorInput.value = e.currentTarget.dataset.color || '#8b5cf6';
+    });
+  });
+
+  // Form de adição rápida no Day Detail Modal
+  document.getElementById('day-quick-add-form')?.addEventListener('submit', async (e) => {
+    e.preventDefault();
+    const titleInput = document.getElementById('day-quick-title-input');
+    const title = titleInput ? titleInput.value.trim() : '';
+    if (!title) return;
+
+    const dateStr = window.AppState.currentDayDetailDate;
+    const folderId = document.getElementById('day-quick-folder-select').value || null;
+    const priority = document.getElementById('day-quick-priority-select').value || 'media';
+    const color = document.getElementById('day-quick-color-input').value || '#8b5cf6';
+
+    try {
+      const user = window.AppState.user;
+      const { data, error } = await window.supabase.from('tasks').insert([{
+        user_id: user.id,
+        folder_id: folderId,
+        title,
+        due_date: dateStr,
+        color,
+        priority,
+        completed: false
+      }]).select();
+
+      if (error) throw error;
+
+      if (data && data.length > 0) {
+        window.AppState.tasks.push(data[0]);
+        if (titleInput) titleInput.value = '';
+        window.Calendar_renderDayDetail(dateStr);
+        if (window.App_refreshAll) {
+          window.App_refreshAll();
+        } else {
+          window.Calendar_render();
+        }
+        window.showToast?.('Tarefa adicionada!', 'success');
+      }
+    } catch (err) {
+      console.error(err);
+      window.showToast?.('Erro ao adicionar tarefa', 'error');
+    }
+  });
+
+  // Eventos na lista de tarefas do Day Detail Modal
+  const dayTaskList = document.getElementById('day-detail-tasks-list');
+  if (dayTaskList) {
+    dayTaskList.addEventListener('click', async (e) => {
+      const item = e.target.closest('.day-task-item');
+      if (!item) return;
+      const taskId = item.getAttribute('data-task-id');
+      const task = window.AppState.tasks.find(t => t.id === taskId);
+      if (!task) return;
+
+      // Checkbox Toggle
+      if (e.target.classList.contains('task-checkbox') || e.target.closest('.task-checkbox')) {
+        const checkbox = item.querySelector('.task-checkbox');
+        const newCompleted = !task.completed;
+        if (e.target.type !== 'checkbox') checkbox.checked = newCompleted;
+
+        try {
+          const { error } = await window.supabase
+            .from('tasks')
+            .update({ completed: newCompleted })
+            .eq('id', task.id);
+          if (error) throw error;
+
+          task.completed = newCompleted;
+          if (window.AppState.currentDayDetailDate) {
+            window.Calendar_renderDayDetail(window.AppState.currentDayDetailDate);
+          }
+          if (window.App_refreshAll) window.App_refreshAll();
+        } catch (err) {
+          console.error(err);
+          checkbox.checked = !newCompleted;
+          window.showToast('Erro ao atualizar status', 'error');
+        }
+        return;
+      }
+
+      // Editar Tarefa
+      if (e.target.classList.contains('task-edit-btn') || e.target.closest('.task-edit-btn')) {
+        document.getElementById('task-modal-title').textContent = 'Editar Tarefa';
+        document.getElementById('task-id-input').value = task.id;
+        document.getElementById('task-title-input').value = task.title;
+        document.getElementById('task-folder-select').value = task.folder_id || '';
+        document.getElementById('task-date-input').value = task.due_date || '';
+        document.getElementById('task-priority-select').value = task.priority || 'media';
+        document.getElementById('task-color-input').value = task.color || '#8b5cf6';
+        
+        const colorOptions = document.querySelectorAll('#task-color-options .color-option');
+        colorOptions.forEach(opt => {
+          if (opt.getAttribute('data-color') === task.color) {
+            opt.classList.add('selected');
+          } else {
+            opt.classList.remove('selected');
+          }
+        });
+
+        window.showModal('task-modal');
+        return;
+      }
+
+      // Excluir Tarefa
+      if (e.target.classList.contains('task-delete-btn') || e.target.closest('.task-delete-btn')) {
+        if (confirm(`Excluir a tarefa "${task.title}"?`)) {
+          try {
+            const { error } = await window.supabase.from('tasks').delete().eq('id', task.id);
+            if (error) throw error;
+
+            window.AppState.tasks = window.AppState.tasks.filter(t => t.id !== task.id);
+            if (window.AppState.currentDayDetailDate) {
+              window.Calendar_renderDayDetail(window.AppState.currentDayDetailDate);
+            }
+            if (window.App_refreshAll) window.App_refreshAll();
+            window.showToast('Tarefa excluída');
+          } catch (err) {
+            console.error(err);
+            window.showToast('Erro ao excluir tarefa', 'error');
+          }
+        }
+        return;
+      }
+
+      // Toque na linha para exibir botões no celular
+      const wasActive = item.classList.contains('active');
+      dayTaskList.querySelectorAll('.day-task-item').forEach(r => r.classList.remove('active'));
+      if (!wasActive) {
+        item.classList.add('active');
+      }
+    });
+  }
+
   window.Calendar_render();
 };
 
@@ -298,31 +448,9 @@ window.Calendar_renderMain = function() {
   
   container.querySelectorAll('.cal-day').forEach(cell => {
     cell.addEventListener('click', (e) => {
-      if (e.target.closest('.cal-task')) return;
-      
       const dateStr = cell.dataset.date;
-      const dateInput = document.getElementById('cal-task-date-input');
-      const dateDisplay = document.getElementById('cal-task-date-display');
-      if (dateInput) dateInput.value = dateStr;
-      if (dateDisplay) {
-        const [y, m, d] = dateStr.split('-');
-        dateDisplay.textContent = `${d}/${m}/${y}`;
-      }
-      
-      // Popular select de pastas
-      const folderSelect = document.getElementById('cal-task-folder-select');
-      if (folderSelect) {
-        let options = '<option value="">Sem pasta</option>';
-        window.AppState.folders.forEach(f => {
-          options += `<option value="${f.id}">${f.icon || '📁'} ${f.name}</option>`;
-        });
-        folderSelect.innerHTML = options;
-        if (window.AppState.currentCalendarFilter !== 'all') {
-          folderSelect.value = window.AppState.currentCalendarFilter;
-        }
-      }
-      
-      if (window.showModal) window.showModal('cal-task-modal');
+      if (!dateStr) return;
+      window.Calendar_openDayDetail(dateStr);
     });
   });
 };
@@ -472,5 +600,118 @@ window.Calendar_renderUpcoming = function() {
       }
     });
   });
+};
+
+const FULL_WEEKDAYS = ['Domingo', 'Segunda-feira', 'Terça-feira', 'Quarta-feira', 'Quinta-feira', 'Sexta-feira', 'Sábado'];
+
+window.Calendar_openDayDetail = function(dateStr) {
+  if (!dateStr) return;
+  window.AppState.currentDayDetailDate = dateStr;
+  
+  // Popular select de pastas no quick add do dia
+  const folderSelect = document.getElementById('day-quick-folder-select');
+  if (folderSelect) {
+    let options = '<option value="">Sem pasta</option>';
+    window.AppState.folders.forEach(f => {
+      options += `<option value="${f.id}">${f.icon || '📁'} ${f.name}</option>`;
+    });
+    folderSelect.innerHTML = options;
+    if (window.AppState.currentCalendarFilter !== 'all') {
+      folderSelect.value = window.AppState.currentCalendarFilter;
+    }
+  }
+
+  // Reset do formulário rápido
+  const titleInput = document.getElementById('day-quick-title-input');
+  if (titleInput) titleInput.value = '';
+
+  const colorInput = document.getElementById('day-quick-color-input');
+  if (colorInput) colorInput.value = '#8b5cf6';
+
+  const colorOptions = document.querySelectorAll('#day-quick-color-options .color-option');
+  colorOptions.forEach((opt, idx) => {
+    if (idx === 0) opt.classList.add('selected');
+    else opt.classList.remove('selected');
+  });
+
+  window.Calendar_renderDayDetail(dateStr);
+  window.showModal('day-detail-modal');
+};
+
+window.Calendar_renderDayDetail = function(dateStr) {
+  if (!dateStr) return;
+  
+  const titleEl = document.getElementById('day-detail-date-title');
+  const subtitleEl = document.getElementById('day-detail-date-subtitle');
+  const taskList = document.getElementById('day-detail-tasks-list');
+
+  const [yStr, mStr, dStr] = dateStr.split('-');
+  const y = parseInt(yStr, 10);
+  const m = parseInt(mStr, 10) - 1;
+  const d = parseInt(dStr, 10);
+
+  const dateObj = new Date(y, m, d);
+  const weekday = FULL_WEEKDAYS[dateObj.getDay()] || '';
+  const monthName = MONTH_NAMES[m] || '';
+
+  if (titleEl) {
+    titleEl.textContent = `${d} de ${monthName} de ${y}`;
+  }
+
+  const dayTasks = window.AppState.tasks.filter(t => t.due_date === dateStr);
+  const pending = dayTasks.filter(t => !t.completed).length;
+
+  if (subtitleEl) {
+    subtitleEl.textContent = `${weekday} • ${dayTasks.length} tarefa${dayTasks.length !== 1 ? 's' : ''} (${pending} pendente${pending !== 1 ? 's' : ''})`;
+  }
+
+  if (!taskList) return;
+
+  if (dayTasks.length === 0) {
+    taskList.innerHTML = `<p class="empty-msg" style="text-align:center; padding:18px; color:var(--text-muted); font-size:0.9rem;">
+      Nenhuma tarefa agendada para este dia. Adicione uma no campo abaixo!
+    </p>`;
+    return;
+  }
+
+  const priorityColors = {
+    'alta': '#ef4444',
+    'media': '#f59e0b',
+    'baixa': '#22c55e'
+  };
+
+  let html = '';
+  dayTasks.forEach(task => {
+    const isDone = task.completed;
+    const pColor = priorityColors[task.priority] || '#8b5cf6';
+    const pText = task.priority ? task.priority.charAt(0).toUpperCase() + task.priority.slice(1) : 'Média';
+    
+    let folderLabel = 'Sem pasta';
+    let folderColor = '#8b5cf6';
+    if (task.folder_id) {
+      const folder = window.AppState.folders.find(f => f.id === task.folder_id);
+      if (folder) {
+        folderLabel = `${folder.icon || '📁'} ${folder.name}`;
+        folderColor = folder.color || '#8b5cf6';
+      }
+    }
+
+    html += `
+      <div class="day-task-item ${isDone ? 'completed' : ''}" data-task-id="${task.id}" style="${isDone ? 'opacity: 0.65;' : ''}">
+        <input type="checkbox" class="task-checkbox" ${isDone ? 'checked' : ''} data-id="${task.id}">
+        <div class="day-task-title" style="${isDone ? 'text-decoration: line-through;' : ''}">
+          ${task.title}
+        </div>
+        <div class="folder-task-meta">
+          <span class="badge" style="background-color: ${folderColor}20; color: ${folderColor}; border: 1px solid ${folderColor}40; font-size:0.75rem;">${folderLabel}</span>
+          <span class="badge" style="background-color: ${pColor}25; color: ${pColor}; border: 1px solid ${pColor}50; font-size:0.75rem;">${pText}</span>
+          <button class="task-edit-btn" data-id="${task.id}" title="Editar">✏️</button>
+          <button class="task-delete-btn" data-id="${task.id}" title="Excluir">🗑️</button>
+        </div>
+      </div>
+    `;
+  });
+
+  taskList.innerHTML = html;
 };
 
