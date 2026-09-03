@@ -3,26 +3,75 @@
 
 window.Tasks_init = async function() {
   try {
-    // Carregar todas as tarefas do usuário para manter calendário e contadores precisos
+    // 1. Carregar tarefas do cache local imediatamente (0ms de espera)
+    const cached = localStorage.getItem('rotina_cached_tasks');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          window.AppState.tasks = parsed;
+          window.Tasks_render();
+          if (window.Folders_render) window.Folders_render();
+          if (window.Calendar_render) window.Calendar_render();
+        }
+      } catch (e) {
+        console.warn('Erro ao ler cache de tarefas:', e);
+      }
+    }
+
+    // 2. Carregar do Supabase com tratamento resiliente
     await window.Tasks_fetchAll();
     window.Tasks_updateFilterTabs();
     window.Tasks_setupEventListeners();
   } catch (error) {
     console.error('Erro ao inicializar tarefas:', error);
-    window.showToast('Erro ao carregar tarefas', 'error');
+    if (!window.AppState.tasks || window.AppState.tasks.length === 0) {
+      window.showToast('Conexão instável, tentando reconectar...', 'warning');
+    }
   }
 };
 
 window.Tasks_fetchAll = async function() {
-  const { data, error } = await window.supabase
+  // Garantir usuário logado
+  if (!window.AppState.user || !window.AppState.user.id) {
+    try {
+      const { data: { user } } = await window.supabase.auth.getUser();
+      if (user) {
+        window.AppState.user = user;
+      } else {
+        return;
+      }
+    } catch (e) {
+      return;
+    }
+  }
+
+  let res = await window.supabase
     .from('tasks')
     .select('*')
     .eq('user_id', window.AppState.user.id)
-    .order('due_date', { ascending: true, nullsFirst: false });
+    .order('due_date', { ascending: true });
 
-  if (error) throw error;
+  // Se der erro de rede, tenta novamente uma vez após 600ms
+  if (res.error) {
+    await new Promise(r => setTimeout(r, 600));
+    res = await window.supabase
+      .from('tasks')
+      .select('*')
+      .eq('user_id', window.AppState.user.id)
+      .order('due_date', { ascending: true });
+  }
 
-  window.AppState.tasks = data || [];
+  if (res.error) {
+    console.warn('Erro ao sincronizar tarefas:', res.error);
+    return;
+  }
+
+  window.AppState.tasks = res.data || [];
+  try {
+    localStorage.setItem('rotina_cached_tasks', JSON.stringify(window.AppState.tasks));
+  } catch (e) {}
+
   window.Tasks_render();
   if (window.Folders_render) window.Folders_render();
   if (window.Calendar_render) window.Calendar_render();
@@ -199,6 +248,9 @@ window.Tasks_getAll = function() {
 };
 
 window.Tasks_setupEventListeners = function() {
+  if (window._tasksListenersSetup) return;
+  window._tasksListenersSetup = true;
+
   const tabsContainer = document.getElementById('tasks-filter-tabs');
   const tbody = document.getElementById('tasks-tbody');
   const addBtn = document.getElementById('add-task-btn');

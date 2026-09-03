@@ -14,6 +14,32 @@ window.Routines_init = async function() {
     dateLabel.textContent = today.toLocaleDateString('pt-BR', { weekday: 'long', day: 'numeric', month: 'long' });
   }
 
+  // 1. Carregar do cache local imediatamente (0ms de espera)
+  const cachedRoutines = localStorage.getItem('rotina_cached_routines');
+  if (cachedRoutines) {
+    try {
+      const parsed = JSON.parse(cachedRoutines);
+      if (Array.isArray(parsed) && parsed.length > 0) {
+        window.AppState.routines = parsed;
+        window.Routines_render();
+      }
+    } catch (e) {}
+  }
+
+  // 2. Garantir usuário logado
+  if (!window.AppState.user || !window.AppState.user.id) {
+    try {
+      const { data: { user } } = await window.supabase.auth.getUser();
+      if (user) {
+        window.AppState.user = user;
+      } else {
+        return;
+      }
+    } catch (e) {
+      return;
+    }
+  }
+
   const user = window.AppState.user;
   const todayStr = getTodayStr();
   
@@ -28,6 +54,7 @@ window.Routines_init = async function() {
       
       if (!routinesError && routines) {
         window.AppState.routines = routines;
+        try { localStorage.setItem('rotina_cached_routines', JSON.stringify(routines)); } catch (e) {}
       }
 
       // Carregar logs de hoje
@@ -40,10 +67,14 @@ window.Routines_init = async function() {
       if (!logsError && logs) {
         window.AppState.routineLogs = logs;
       }
+      window.Routines_render();
     } catch (err) {
       console.error('Erro ao carregar rotinas:', err);
     }
   }
+
+  if (window._routinesListenersSetup) return;
+  window._routinesListenersSetup = true;
 
   // Configuração dos eventos do modal de rotina
   const allDaysCb = document.getElementById('routine-all-days-checkbox');

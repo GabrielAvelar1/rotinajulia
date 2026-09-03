@@ -3,22 +3,64 @@
 
 window.Folders_init = async function() {
   try {
-    const { data: folders, error } = await window.supabase
+    // 1. Carregar pastas do cache local imediatamente (0ms de espera)
+    const cached = localStorage.getItem('rotina_cached_folders');
+    if (cached) {
+      try {
+        const parsed = JSON.parse(cached);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          window.AppState.folders = parsed;
+          window.Folders_render();
+          window.Folders_updateDependents();
+        }
+      } catch (e) {
+        console.warn('Erro ao ler cache de pastas:', e);
+      }
+    }
+
+    // 2. Garantir usuário logado
+    if (!window.AppState.user || !window.AppState.user.id) {
+      try {
+        const { data: { user } } = await window.supabase.auth.getUser();
+        if (user) {
+          window.AppState.user = user;
+        } else {
+          return;
+        }
+      } catch (e) {
+        return;
+      }
+    }
+
+    let res = await window.supabase
       .from('folders')
       .select('*')
       .eq('user_id', window.AppState.user.id)
       .order('position', { ascending: true });
 
-    if (error) throw error;
+    // Retry uma vez se falhar por instabilidade
+    if (res.error) {
+      await new Promise(r => setTimeout(r, 600));
+      res = await window.supabase
+        .from('folders')
+        .select('*')
+        .eq('user_id', window.AppState.user.id)
+        .order('position', { ascending: true });
+    }
 
-    window.AppState.folders = folders || [];
-    window.Folders_render();
-    window.Folders_updateDependents();
+    if (!res.error && res.data) {
+      window.AppState.folders = res.data;
+      try {
+        localStorage.setItem('rotina_cached_folders', JSON.stringify(res.data));
+      } catch (e) {}
+      window.Folders_render();
+      window.Folders_updateDependents();
+    }
+
     window.Folders_setupEventListeners();
 
   } catch (error) {
     console.error('Erro ao carregar pastas:', error);
-    window.showToast('Erro ao carregar pastas', 'error');
   }
 };
 
@@ -68,6 +110,9 @@ window.Folders_updateDependents = function() {
 };
 
 window.Folders_setupEventListeners = function() {
+  if (window._foldersListenersSetup) return;
+  window._foldersListenersSetup = true;
+
   const addBtn = document.getElementById('add-folder-btn');
   const grid = document.getElementById('folders-grid');
   const saveBtn = document.getElementById('folder-save-btn');
@@ -579,12 +624,16 @@ window.Folders_renderDetailModal = function(folderId) {
     html += `
       <div class="folder-task-item ${isDone ? 'completed' : ''}" data-task-id="${task.id}" style="${isDone ? 'opacity: 0.65;' : ''}">
         <input type="checkbox" class="task-checkbox" ${isDone ? 'checked' : ''} data-id="${task.id}">
-        <div class="folder-task-title" style="${isDone ? 'text-decoration: line-through;' : ''}">
-          ${task.title}
+        <div class="folder-task-content">
+          <div class="folder-task-title" style="${isDone ? 'text-decoration: line-through;' : ''}">
+            ${task.title}
+          </div>
+          <div class="folder-task-meta">
+            <span class="folder-task-date"><i class="far fa-calendar"></i> ${dateFormatted}</span>
+            <span class="badge" style="background-color: ${pColor}25; color: ${pColor}; border: 1px solid ${pColor}50;">${pText}</span>
+          </div>
         </div>
-        <div class="folder-task-meta">
-          <span class="folder-task-date"><i class="far fa-calendar"></i> ${dateFormatted}</span>
-          <span class="badge" style="background-color: ${pColor}25; color: ${pColor}; border: 1px solid ${pColor}50;">${pText}</span>
+        <div class="folder-task-actions">
           <button class="task-edit-btn" data-id="${task.id}" title="Editar">✏️</button>
           <button class="task-delete-btn" data-id="${task.id}" title="Excluir">🗑️</button>
         </div>

@@ -1533,122 +1533,91 @@ body {
   overflow-y: auto;
   padding-right: 4px;
 }
-.folder-task-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 10px 14px;
-  background: var(--bg-dark);
-  border: 1px solid var(--border-color);
-  border-radius: 8px;
-  transition: all 0.2s ease;
-}
-.folder-task-item:hover,
-.folder-task-item.active {
-  background: var(--bg-card-hover);
-  border-color: rgba(139, 92, 246, 0.4);
-}
-.folder-task-title {
-  flex: 1;
-  font-size: 0.9rem;
-  color: var(--text-color);
-  word-break: break-word;
-}
-.folder-task-meta {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  flex-shrink: 0;
-}
-.folder-task-date {
-  font-size: 0.75rem;
-  color: var(--text-muted);
-  display: flex;
-  align-items: center;
-  gap: 4px;
-}
-
-/* Day Detail Modal */
-.day-detail-content {
-  max-width: 600px;
-  width: 95%;
-  max-height: 90vh;
-  overflow-y: auto;
-  padding: 24px !important;
-  border-radius: 16px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-color);
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
-}
-.day-detail-header {
-  position: relative;
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 20px;
-  padding-bottom: 15px;
-  border-bottom: 1px solid var(--border-color);
-}
-.day-detail-badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-size: 0.75rem;
-  color: var(--primary);
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  font-weight: 600;
-  margin-bottom: 4px;
-}
-.day-detail-title {
-  font-size: 1.45rem;
-  color: #fff;
-  margin: 0 0 4px 0;
-}
-.day-detail-subtitle {
-  font-size: 0.85rem;
-  color: var(--text-muted);
-  margin: 0;
-}
-.day-detail-section-title {
-  font-size: 0.9rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin: 0 0 10px 0;
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-.day-detail-tasks-list {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-  max-height: 240px;
-  overflow-y: auto;
-  margin-bottom: 20px;
-  padding-right: 4px;
-}
+/* Folder Task Items */
+.folder-task-item,
 .day-task-item {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   gap: 12px;
-  padding: 10px 14px;
+  padding: 12px 14px;
   background: var(--bg-dark);
   border: 1px solid var(--border-color);
-  border-radius: 8px;
+  border-radius: 10px;
   transition: all 0.2s ease;
+  position: relative;
 }
+.folder-task-item:hover,
+.folder-task-item.active,
 .day-task-item:hover,
 .day-task-item.active {
   background: var(--bg-card-hover);
   border-color: rgba(139, 92, 246, 0.4);
 }
-.day-task-title {
-  flex: 1;
-  font-size: 0.9rem;
-  color: var(--text-color);
-  word-break: break-word;
+.folder-task-item .task-checkbox,
+.day-task-item .task-checkbox {
+  margin-top: 2px;
+  flex-shrink: 0;
 }
+.folder-task-content,
+.day-task-content {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.folder-task-title,
+.day-task-title {
+  font-size: 0.95rem;
+  font-weight: 500;
+  color: var(--text-color);
+  line-height: 1.4;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+.folder-task-meta,
+.day-task-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.folder-task-date {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+.folder-task-actions,
+.day-task-actions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.folder-task-item .task-edit-btn,
+.folder-task-item .task-delete-btn,
+.day-task-item .task-edit-btn,
+.day-task-item .task-delete-btn {
+  opacity: 0.6;
+  visibility: visible;
+  pointer-events: auto;
+}
+.folder-task-item:hover .task-edit-btn,
+.folder-task-item:hover .task-delete-btn,
+.folder-task-item.active .task-edit-btn,
+.folder-task-item.active .task-delete-btn,
+.day-task-item:hover .task-edit-btn,
+.day-task-item:hover .task-delete-btn,
+.day-task-item.active .task-edit-btn,
+.day-task-item.active .task-delete-btn {
+  opacity: 1;
+}
+
+/* Day Quick Add Section */
 .day-quick-add-section {
   background: var(--bg-dark);
   border: 1px solid var(--border-color);

@@ -72,8 +72,11 @@ function Banner_applyConfig() {
     }
   }
 
-  // Aplicar ícone do app se existir
-  if (config.app_icon_url) {
+  // Aplicar ícone do app se existir no localStorage ou no banco
+  const localAppIcon = localStorage.getItem('rotina_app_icon');
+  if (localAppIcon) {
+    Banner_applyAppIcon(localAppIcon);
+  } else if (config.app_icon_url) {
     Banner_applyAppIcon(config.app_icon_url);
   }
 }
@@ -181,23 +184,70 @@ function Banner_setupEventListeners() {
       if (!file) return;
 
       try {
-        window.showToast('Enviando foto do aplicativo...');
-        const url = await window.uploadImage(file, 'app-icons');
+        window.showToast('Processando foto do aplicativo...');
 
-        // Atualizar no banco
-        const { error } = await window.supabase
-          .from('site_config')
-          .update({ app_icon_url: url, updated_at: new Date().toISOString() })
-          .eq('id', window.AppState.siteConfig.id);
+        // 1. Processar a imagem com canvas para criar um ícone quadrado perfeito de 192x192
+        const iconDataUrl = await new Promise((resolve, reject) => {
+          const reader = new FileReader();
+          reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+              try {
+                const canvas = document.createElement('canvas');
+                canvas.width = 192;
+                canvas.height = 192;
+                const ctx = canvas.getContext('2d');
+                
+                // Enquadramento centralizado proporcional (cover)
+                const minSide = Math.min(img.width, img.height);
+                const sx = (img.width - minSide) / 2;
+                const sy = (img.height - minSide) / 2;
+                ctx.drawImage(img, sx, sy, minSide, minSide, 0, 0, 192, 192);
+                
+                resolve(canvas.toDataURL('image/png', 0.92));
+              } catch (canvasErr) {
+                resolve(event.target.result);
+              }
+            };
+            img.onerror = () => resolve(event.target.result);
+            img.src = event.target.result;
+          };
+          reader.onerror = reject;
+          reader.readAsDataURL(file);
+        });
 
-        if (error) throw error;
+        // 2. Salvar imediatamente no navegador (localStorage) e aplicar no cabeçalho
+        try {
+          localStorage.setItem('rotina_app_icon', iconDataUrl);
+        } catch (storageQuotaErr) {
+          console.warn('LocalStorage quota excedida para ícone:', storageQuotaErr);
+        }
+        Banner_applyAppIcon(iconDataUrl);
 
-        window.AppState.siteConfig.app_icon_url = url;
-        Banner_applyAppIcon(url);
-        window.showToast('Ícone do app atualizado com sucesso!');
+        // 3. Tentar upload para o Supabase Storage e atualizar site_config sem bloquear sucesso
+        let remoteUrl = null;
+        try {
+          remoteUrl = await window.uploadImage(file, 'app-icons');
+        } catch (uploadErr) {
+          console.warn('Upload remoto de imagem falhou, mantendo ícone local:', uploadErr);
+        }
+
+        if (remoteUrl && window.AppState.siteConfig?.id) {
+          try {
+            await window.supabase
+              .from('site_config')
+              .update({ app_icon_url: remoteUrl, updated_at: new Date().toISOString() })
+              .eq('id', window.AppState.siteConfig.id);
+            window.AppState.siteConfig.app_icon_url = remoteUrl;
+          } catch (dbErr) {
+            console.warn('Atualização remota no banco falhou:', dbErr);
+          }
+        }
+
+        window.showToast('Foto do app atualizada com sucesso!', 'success');
 
       } catch (error) {
-        console.error('Erro no upload do ícone:', error);
+        console.error('Erro no processamento do ícone:', error);
         window.showToast('Erro ao atualizar foto do app', 'error');
       } finally {
         appIconInput.value = '';

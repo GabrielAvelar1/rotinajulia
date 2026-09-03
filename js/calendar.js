@@ -699,12 +699,16 @@ window.Calendar_renderDayDetail = function(dateStr) {
     html += `
       <div class="day-task-item ${isDone ? 'completed' : ''}" data-task-id="${task.id}" style="${isDone ? 'opacity: 0.65;' : ''}">
         <input type="checkbox" class="task-checkbox" ${isDone ? 'checked' : ''} data-id="${task.id}">
-        <div class="day-task-title" style="${isDone ? 'text-decoration: line-through;' : ''}">
-          ${task.title}
+        <div class="day-task-content">
+          <div class="day-task-title" style="${isDone ? 'text-decoration: line-through;' : ''}">
+            ${task.title}
+          </div>
+          <div class="day-task-meta">
+            <span class="badge" style="background-color: ${folderColor}20; color: ${folderColor}; border: 1px solid ${folderColor}40; font-size:0.75rem;">${folderLabel}</span>
+            <span class="badge" style="background-color: ${pColor}25; color: ${pColor}; border: 1px solid ${pColor}50; font-size:0.75rem;">${pText}</span>
+          </div>
         </div>
-        <div class="folder-task-meta">
-          <span class="badge" style="background-color: ${folderColor}20; color: ${folderColor}; border: 1px solid ${folderColor}40; font-size:0.75rem;">${folderLabel}</span>
-          <span class="badge" style="background-color: ${pColor}25; color: ${pColor}; border: 1px solid ${pColor}50; font-size:0.75rem;">${pText}</span>
+        <div class="day-task-actions">
           <button class="task-edit-btn" data-id="${task.id}" title="Editar">✏️</button>
           <button class="task-delete-btn" data-id="${task.id}" title="Excluir">🗑️</button>
         </div>
