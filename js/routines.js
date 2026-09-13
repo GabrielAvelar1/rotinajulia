@@ -7,6 +7,34 @@ function getTodayStr() {
   return window.getLocalDateString ? window.getLocalDateString() : new Date().toISOString().split('T')[0];
 }
 
+function getYesterdayStr(dateStr) {
+  const d = new Date(dateStr + 'T12:00:00');
+  d.setDate(d.getDate() - 1);
+  return window.getLocalDateString ? window.getLocalDateString(d) : d.toISOString().split('T')[0];
+}
+
+// Verifica se a última data de conclusão foi no último dia agendado antes de hoje
+function isLastScheduledDay(routine, lastDateStr, todayStr) {
+  if (!lastDateStr) return false;
+  if (!routine.days_of_week || routine.days_of_week === 'all') {
+    return lastDateStr === getYesterdayStr(todayStr);
+  }
+
+  const scheduledDays = routine.days_of_week.split(',').map(Number);
+  if (scheduledDays.length === 0) return false;
+
+  let checkDate = new Date(todayStr + 'T12:00:00');
+  for (let i = 1; i <= 7; i++) {
+    checkDate.setDate(checkDate.getDate() - 1);
+    const dayOfWeek = checkDate.getDay();
+    if (scheduledDays.includes(dayOfWeek)) {
+      const expectedDateStr = window.getLocalDateString ? window.getLocalDateString(checkDate) : checkDate.toISOString().split('T')[0];
+      return lastDateStr === expectedDateStr;
+    }
+  }
+  return false;
+}
+
 window.Routines_init = async function() {
   const dateLabel = document.getElementById('routines-date-label');
   if (dateLabel) {
@@ -202,7 +230,9 @@ window.Routines_init = async function() {
         const id = e.target.dataset.id;
         const completed = e.target.checked;
         const todayStr = getTodayStr();
+        const yesterdayStr = getYesterdayStr(todayStr);
         const user = window.AppState.user;
+        const routine = window.AppState.routines.find(r => r.id === id);
         
         try {
           let existingLog = window.AppState.routineLogs.find(l => l.routine_id === id && l.completed_date === todayStr);
@@ -223,6 +253,52 @@ window.Routines_init = async function() {
               window.AppState.routineLogs.push(data[0]);
             }
           }
+
+          // Atualizar Lógica de Ofensiva (Streak)
+          if (routine) {
+            let currentStreak = parseInt(routine.streak_count) || 0;
+            let lastCompleted = routine.last_completed_date;
+
+            if (completed) {
+              // Marcando como concluído
+              if (lastCompleted === todayStr) {
+                routine.streak_count = Math.max(1, currentStreak);
+              } else if (lastCompleted === yesterdayStr || isLastScheduledDay(routine, lastCompleted, todayStr)) {
+                // Concluiu dia seguido
+                routine.streak_count = currentStreak + 1;
+              } else {
+                // Iniciou nova sequência
+                routine.streak_count = 1;
+              }
+              routine.last_completed_date = todayStr;
+            } else {
+              // Desmarcando como concluído hoje
+              if (lastCompleted === todayStr) {
+                const prevStreak = Math.max(0, currentStreak - 1);
+                routine.streak_count = prevStreak;
+                routine.last_completed_date = prevStreak > 0 ? yesterdayStr : null;
+              }
+            }
+
+            // Persistir no Supabase com fallback gracioso
+            try {
+              const streakPayload = {
+                streak_count: routine.streak_count,
+                last_completed_date: routine.last_completed_date
+              };
+              const res = await window.supabase.from('routines').update(streakPayload).eq('id', id);
+              if (res.error && (res.error.message?.includes('streak') || res.error.code === '42703' || res.error.code === 'PGRST204')) {
+                console.warn('Banco não possui colunas de streak ainda. Mantido no cache local.');
+              }
+            } catch (streakErr) {
+              console.warn('Erro ao atualizar streak no banco:', streakErr);
+            }
+
+            try {
+              localStorage.setItem('rotina_cached_routines', JSON.stringify(window.AppState.routines));
+            } catch (e) {}
+          }
+
           window.Routines_render();
           if (window.Charts_render) window.Charts_render();
         } catch (err) {
@@ -305,6 +381,7 @@ window.Routines_render = function() {
   if (!container) return;
 
   const todayStr = getTodayStr();
+  const yesterdayStr = getYesterdayStr(todayStr);
   const todayDayOfWeek = new Date().getDay(); // 0 = Dom, 1 = Seg, ... 6 = Sáb
   let html = '';
   
@@ -334,16 +411,68 @@ window.Routines_render = function() {
     const isCompleted = todayLog ? todayLog.completed : false;
     if (appliesToday && isCompleted) todayCompletedCount++;
 
+    // Cálculo da Ofensiva Ativa
+    let rawStreak = parseInt(routine.streak_count) || 0;
+    let lastDate = routine.last_completed_date;
+    
+    let effectiveStreak = 0;
+    if (isCompleted) {
+      effectiveStreak = Math.max(1, rawStreak);
+    } else if (lastDate === yesterdayStr || isLastScheduledDay(routine, lastDate, todayStr)) {
+      // Sequência do dia anterior ainda viva esperando conclusão de hoje
+      effectiveStreak = rawStreak;
+    } else if (lastDate === todayStr) {
+      effectiveStreak = rawStreak;
+    } else {
+      // Pulou dia ou nova
+      effectiveStreak = 0;
+    }
+
+    // Feedback dinâmico
+    let feedbackHtml = '';
+    if (isCompleted) {
+      feedbackHtml = `<div class="routine-streak-feedback success">
+        <i class="fas fa-fire"></i> Você completou a tarefa <strong>"${routine.title}"</strong> por <strong>${effectiveStreak} ${effectiveStreak === 1 ? 'dia seguido' : 'dias seguidos'}</strong>!
+      </div>`;
+    } else if (effectiveStreak > 0 && appliesToday) {
+      feedbackHtml = `<div class="routine-streak-feedback pending">
+        <i class="fas fa-bolt"></i> Marque hoje para manter sua ofensiva de <strong>${effectiveStreak} ${effectiveStreak === 1 ? 'dia' : 'dias'}</strong>!
+      </div>`;
+    } else if (appliesToday) {
+      feedbackHtml = `<div class="routine-streak-feedback info">
+        <i class="fas fa-seedling"></i> Complete hoje para iniciar sua sequência de ofensiva!
+      </div>`;
+    } else {
+      feedbackHtml = `<div class="routine-streak-feedback muted">
+        <i class="far fa-calendar-check"></i> Ofensiva de ${effectiveStreak} ${effectiveStreak === 1 ? 'dia' : 'dias'} pausada hoje.
+      </div>`;
+    }
+
+    // Badge visual de Foguinho
+    const streakBadgeHtml = `
+      <div class="routine-streak-badge ${effectiveStreak > 0 ? (isCompleted ? 'active glow' : 'active') : 'inactive'}" title="Ofensiva atual: ${effectiveStreak} dias seguidos">
+        <i class="fas fa-fire"></i>
+        <span>${effectiveStreak} ${effectiveStreak === 1 ? 'dia' : 'dias'}</span>
+      </div>
+    `;
+
     // Renderizar item com estilo especial se não for de hoje
-    const notTodayStyle = !appliesToday ? 'filter: grayscale(0.8); opacity: 0.5;' : (isCompleted ? 'opacity: 0.6;' : '');
+    const notTodayStyle = !appliesToday ? 'filter: grayscale(0.8); opacity: 0.55;' : (isCompleted ? 'opacity: 0.85;' : '');
     const notTodayBadge = !appliesToday ? `<span class="routine-days-badge" style="background:rgba(255,255,255,0.05); color:var(--text-muted);">(Hoje não - ${daysBadgeText})</span>` : (daysBadgeText ? `<span class="routine-days-badge">(${daysBadgeText})</span>` : '');
 
     html += `
-      <div class="routine-item" data-routine-id="${routine.id}" style="${notTodayStyle}">
-        <input type="checkbox" class="routine-checkbox" data-id="${routine.id}" ${isCompleted ? 'checked' : ''} ${!appliesToday ? 'disabled' : ''} title="${!appliesToday ? 'Este hábito não está programado para hoje' : 'Marcar como concluído'}">
-        <div class="routine-icon">${routine.icon || '✨'}</div>
-        <div class="routine-title" style="${isCompleted ? 'text-decoration: line-through;' : ''}">
-          ${routine.title} ${notTodayBadge}
+      <div class="routine-item ${isCompleted ? 'completed' : ''}" data-routine-id="${routine.id}" style="${notTodayStyle}">
+        <div class="routine-item-main">
+          <input type="checkbox" class="routine-checkbox" data-id="${routine.id}" ${isCompleted ? 'checked' : ''} ${!appliesToday ? 'disabled' : ''} title="${!appliesToday ? 'Este hábito não está programado para hoje' : 'Marcar como concluído'}">
+          <div class="routine-icon">${routine.icon || '✨'}</div>
+          <div class="routine-info-col">
+            <div class="routine-title-row">
+              <span class="routine-title" style="${isCompleted ? 'text-decoration: line-through;' : ''}">${routine.title}</span>
+              ${notTodayBadge}
+            </div>
+            ${feedbackHtml}
+          </div>
+          ${streakBadgeHtml}
         </div>
         <div class="routine-actions">
           <button class="routine-edit-btn" data-id="${routine.id}" title="Editar">✏️</button>

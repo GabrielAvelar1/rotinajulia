@@ -1,10 +1,11 @@
-const CACHE_NAME = 'rotina-julia-v10';
+const CACHE_NAME = 'rotina-julia-v11';
 const ASSETS = [
   './',
   './index.html',
   './css/style.css',
   './js/app.js',
   './js/supabase.js',
+  './js/settings.js',
   './js/banner.js',
   './js/folders.js',
   './js/tasks.js',

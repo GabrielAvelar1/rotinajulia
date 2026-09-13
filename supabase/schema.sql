@@ -224,5 +224,9 @@ CREATE POLICY "Public image access" ON storage.objects
 -- ==========================================================
 ALTER TABLE folders ADD COLUMN IF NOT EXISTS cover_position TEXT DEFAULT 'center';
 ALTER TABLE routines ADD COLUMN IF NOT EXISTS days_of_week TEXT DEFAULT 'all';
+ALTER TABLE routines ADD COLUMN IF NOT EXISTS streak_count INTEGER DEFAULT 0;
+ALTER TABLE routines ADD COLUMN IF NOT EXISTS last_completed_date DATE;
 ALTER TABLE site_config ADD COLUMN IF NOT EXISTS app_icon_url TEXT;
+ALTER TABLE site_config ADD COLUMN IF NOT EXISTS theme TEXT DEFAULT 'dark';
+ALTER TABLE site_config ADD COLUMN IF NOT EXISTS accent_color TEXT DEFAULT '#8b5cf6';
 
