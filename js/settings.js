@@ -1,4 +1,4 @@
-﻿// settings.js
+// settings.js
 // Módulo de Configurações, Estética e Temas (Escuro, Claro, Y2K/Vintage)
 
 (function() {
@@ -48,8 +48,7 @@
 
     document.documentElement.style.setProperty('--primary', primary);
     document.documentElement.style.setProperty('--secondary', currentSelectedSecondary);
-    
-    const glow = ACCENT_GLOWS[primary] || ${primary}55;
+    const glow = ACCENT_GLOWS[primary] || (primary + '55');
     document.documentElement.style.setProperty('--glow', glow);
 
     if (saveState) {
