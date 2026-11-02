@@ -279,9 +279,20 @@ window.Routines_init = async function() {
               }
               routine.last_completed_date = todayStr;
 
-              // Gamificação: +2 XP por rotina e verificação de vale para 'Beber água'
+              // Gamificação: XP com multiplicador de sequência (+0.1x por dia de sequência)
+              const achievedStreak = routine.streak_count || 1;
+              const xpAmount = window.Gamification_calculateRoutineXP 
+                ? window.Gamification_calculateRoutineXP(achievedStreak) 
+                : 2;
+              const multiplier = window.Gamification_getRoutineMultiplier
+                ? window.Gamification_getRoutineMultiplier(achievedStreak)
+                : 1.0;
+
               if (window.Gamification_addXP) {
-                window.Gamification_addXP(2, 'Rotina diária');
+                window.Gamification_addXP(xpAmount, 'Rotina diária');
+              }
+              if (multiplier > 1.0 && window.showToast) {
+                window.showToast(`🔥 +${xpAmount} XP! (Ofensiva: ${achievedStreak} dias • ${multiplier}x XP)`, 'info');
               }
               if (isWaterRoutine(routine)) {
                 if (window.Gamification_checkWaterStreakReward) {
@@ -295,7 +306,10 @@ window.Routines_init = async function() {
                 routine.streak_count = prevStreak;
                 routine.last_completed_date = prevStreak > 0 ? yesterdayStr : null;
                 if (window.Gamification_removeXP) {
-                  window.Gamification_removeXP(2);
+                  const xpToRemove = window.Gamification_calculateRoutineXP 
+                  ? window.Gamification_calculateRoutineXP(currentStreak) 
+                  : 2;
+                window.Gamification_removeXP(xpToRemove);
                 }
               }
             }
@@ -505,7 +519,7 @@ window.Routines_render = function() {
 
     // Badge visual de Foguinho
     const streakBadgeHtml = `
-      <div class="routine-streak-badge ${effectiveStreak > 0 ? (isCompleted ? 'active glow' : 'active') : 'inactive'}" title="Ofensiva atual: ${effectiveStreak} dias seguidos">
+      <div class="routine-streak-badge ${effectiveStreak > 0 ? (isCompleted ? 'active glow' : 'active') : 'inactive'}" title="Ofensiva: ${effectiveStreak} dias seguidos (${window.Gamification_getRoutineMultiplier ? window.Gamification_getRoutineMultiplier(effectiveStreak) : Number((1 + effectiveStreak * 0.1).toFixed(1))}x XP)">
         <i class="fas fa-fire"></i>
         <span>${effectiveStreak} ${effectiveStreak === 1 ? 'dia' : 'dias'}</span>
       </div>

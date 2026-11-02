@@ -1,4 +1,4 @@
-const CACHE_NAME = 'rotina-julia-v13';
+const CACHE_NAME = 'rotina-julia-v14';
 const ASSETS = [
   './',
   './index.html',

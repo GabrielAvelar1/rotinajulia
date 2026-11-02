@@ -57,6 +57,18 @@
     return Math.max(0, xp) % XP_PER_LEVEL;
   };
 
+  // Multiplicador de sequência para rotinas: 1.0 + (dias * 0.1)
+  window.Gamification_getRoutineMultiplier = function(streakCount = 0) {
+    const streak = Math.max(0, parseInt(streakCount) || 0);
+    return Number((1 + (streak * 0.1)).toFixed(1));
+  };
+
+  // Cálculo de XP para rotinas com bônus de ofensiva (base 2 XP * multiplicador)
+  window.Gamification_calculateRoutineXP = function(streakCount = 0) {
+    const multiplier = window.Gamification_getRoutineMultiplier(streakCount);
+    return Math.max(2, Math.round(XP_ROUTINE * multiplier));
+  };
+
   window.Gamification_addXP = function(amount, reason = '') {
     const oldLevel = window.Gamification_getLevel(state.xp);
     state.xp = Math.max(0, state.xp + amount);
