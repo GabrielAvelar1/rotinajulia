@@ -105,6 +105,34 @@
             </div>
         </section>
 
+        <!-- GAMIFICATION / NÍVEIS & VALES SECTION -->
+        <section id="gamification-section" class="gamification-section section">
+            <div class="gamification-card">
+                <div class="gamification-header">
+                    <div class="level-badge-container">
+                        <div class="level-star-icon">⭐</div>
+                        <div class="level-info">
+                            <span class="level-title">Nível <strong id="user-level-num">1</strong></span>
+                            <span class="level-xp-text"><span id="user-current-xp">0</span> / 100 XP</span>
+                        </div>
+                    </div>
+                    <div class="gamification-actions">
+                        <button id="vales-btn" class="vales-pill" title="Seus Vales de Proteção de Ofensiva (Clique para gerenciar)">
+                            <span class="vales-icon">🎟️</span>
+                            <span class="vales-count"><strong id="user-vales-num">0</strong> Vales</span>
+                        </button>
+                    </div>
+                </div>
+                <div class="xp-progress-bar-container">
+                    <div id="xp-progress-bar" class="xp-progress-bar" style="width: 0%;"></div>
+                </div>
+                <div class="gamification-footer">
+                    <span class="xp-hint"><i class="fas fa-sparkles"></i> +8 XP por tarefa • +2 XP por rotina</span>
+                    <span class="xp-next-reward" id="xp-next-reward-hint"><i class="fas fa-gift"></i> Nível 10: Ganhe 1 Vale 🎟️</span>
+                </div>
+            </div>
+        </section>
+
         <!-- FOLDERS SECTION -->
         <section id="folders-section" class="section">
             <div id="folders-grid" class="folders-grid">
@@ -624,9 +652,53 @@
         </div>
     </div>
 
+    <!-- Vales Modal (Gerenciador de Vales e Escudos) -->
+    <div id="vales-modal" class="modal" style="display:none;">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content vales-modal-content">
+            <button class="modal-close-btn" id="vales-close-btn" title="Fechar">✕</button>
+            <div class="vales-modal-header">
+                <div class="vales-header-icon">🎟️</div>
+                <div>
+                    <h3 class="modal-title" style="margin-bottom: 2px;">Vales de Ofensiva</h3>
+                    <p class="modal-subtitle" style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">Proteja ou recupere sequências da sua rotina</p>
+                </div>
+            </div>
+
+            <div class="vales-inventory-banner">
+                <div class="vales-inventory-info">
+                    <span class="vales-inventory-label">Seus Vales Disponíveis</span>
+                    <span class="vales-inventory-val"><strong id="vales-modal-count">0</strong> <small>vales</small></span>
+                </div>
+                <div class="vales-how-to-earn">
+                    <p><i class="fas fa-tint"></i> Ganhe <strong>1 vale</strong> a cada 3 dias bebendo água!</p>
+                    <p><i class="fas fa-star"></i> Ganhe <strong>1 vale</strong> a cada nível múltiplo de 10!</p>
+                </div>
+            </div>
+
+            <div class="vales-section-title">
+                <span><i class="fas fa-shield-alt"></i> Aplicar Vale em uma Rotina</span>
+            </div>
+            <p style="font-size: 0.8rem; color: var(--text-muted); margin-bottom: 12px;">
+                Escolha uma rotina abaixo para proteger. Se você esquecer ou não cumprir um dia, o vale é consumido automaticamente para não quebrar sua ofensiva!
+            </p>
+
+            <div id="vales-routines-list" class="vales-routines-list">
+                <!-- rendered by js -->
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px;">
+                <button type="button" id="vales-modal-ok-btn" class="btn btn-primary btn-full">
+                    Concluído
+                </button>
+            </div>
+        </div>
+    </div>
+
     <!-- Scripts -->
     <script src="js/supabase.js"></script>
     <script src="js/settings.js"></script>
+    <script src="js/gamification.js"></script>
     <script src="js/player.js"></script>
     <script src="js/banner.js"></script>
     <script src="js/folders.js"></script>

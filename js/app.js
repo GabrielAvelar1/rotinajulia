@@ -33,6 +33,7 @@ window.App_refreshAll = function() {
   if (window.Calendar_render) window.Calendar_render();
   if (window.Routines_render) window.Routines_render();
   if (window.Charts_render) window.Charts_render();
+  if (window.Gamification_render) window.Gamification_render();
 
   // Re-render folder detail se o modal estiver aberto
   const folderModal = document.getElementById('folder-detail-modal');
@@ -118,10 +119,11 @@ window.App_bootstrap = async function() {
       window.Routines_init ? window.Routines_init() : Promise.resolve()
     ]);
     
-    // 2. Inicializar módulos dependentes (calendário, gráficos, player)
+    // 2. Inicializar módulos dependentes (calendário, gráficos, player, gamificação)
     if (window.Calendar_init) await window.Calendar_init();
     if (window.Charts_init) await window.Charts_init();
     if (window.Player_init) await window.Player_init();
+    if (window.Gamification_init) await window.Gamification_init();
 
     // 3. Atualizar e sincronizar todos os componentes visuais com os dados carregados
     window.App_refreshAll();

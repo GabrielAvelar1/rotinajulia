@@ -1964,4 +1964,367 @@ body {
   }
 }
 
+/* ==========================================================
+   GAMIFICAÇÃO: NÍVEIS (XP) E VALES DE OFENSIVA
+   ========================================================== */
+.gamification-section {
+  padding-top: 15px !important;
+  padding-bottom: 10px !important;
+}
+
+.gamification-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: 14px;
+  padding: 16px 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.gamification-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #f59e0b 0%, var(--primary) 50%, #ec4899 100%);
+}
+
+.gamification-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+  flex-wrap: wrap;
+}
+
+.level-badge-container {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.level-star-icon {
+  font-size: 1.6rem;
+  line-height: 1;
+  filter: drop-shadow(0 0 6px rgba(245, 158, 11, 0.5));
+  animation: starPulse 2.5s infinite alternate ease-in-out;
+}
+
+@keyframes starPulse {
+  0% { transform: scale(1) rotate(0deg); }
+  100% { transform: scale(1.15) rotate(8deg); }
+}
+
+.level-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.level-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.level-title strong {
+  color: #f59e0b;
+}
+
+.level-xp-text {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+}
+
+.gamification-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.vales-pill {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: all 0.2s ease;
+  outline: none;
+}
+
+.vales-pill:hover {
+  background: rgba(245, 158, 11, 0.22);
+  transform: translateY(-1px);
+  box-shadow: 0 2px 10px rgba(245, 158, 11, 0.3);
+  border-color: #f59e0b;
+}
+
+.vales-icon {
+  font-size: 1.1rem;
+}
+
+.xp-progress-bar-container {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  height: 10px;
+  border-radius: 10px;
+  overflow: hidden;
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.xp-progress-bar {
+  background: linear-gradient(90deg, #f59e0b 0%, var(--primary) 70%, var(--secondary) 100%);
+  height: 100%;
+  border-radius: 10px;
+  transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 0 8px var(--glow);
+}
+
+.gamification-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.xp-hint i {
+  color: var(--primary);
+}
+
+.xp-next-reward {
+  font-weight: 500;
+  color: #f59e0b;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+/* Badge de Vale Ativo na Rotina */
+.routine-vale-badge {
+  font-size: 0.75rem;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: rgba(34, 197, 94, 0.15);
+  color: #22c55e;
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: 600;
+  animation: shieldGlow 2s infinite alternate ease-in-out;
+}
+
+@keyframes shieldGlow {
+  0% { box-shadow: 0 0 2px rgba(34, 197, 94, 0.2); }
+  100% { box-shadow: 0 0 8px rgba(34, 197, 94, 0.45); }
+}
+
+.routine-vale-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  font-size: 0.95rem;
+  color: var(--text-muted);
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.routine-vale-btn:hover {
+  color: #f59e0b;
+  transform: scale(1.15);
+}
+
+.routine-vale-btn.active {
+  color: #22c55e;
+}
+
+/* ==========================================================
+   VALES MODAL
+   ========================================================== */
+.vales-modal-content {
+  max-width: 520px !important;
+  width: 92%;
+  border-radius: 18px;
+}
+
+.vales-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.vales-header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.4rem;
+  flex-shrink: 0;
+}
+
+.vales-inventory-banner {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.1) 0%, rgba(139, 92, 246, 0.1) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+  border-radius: 12px;
+  padding: 16px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.vales-inventory-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.vales-inventory-label {
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.vales-inventory-val strong {
+  font-size: 2rem;
+  color: #f59e0b;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.vales-inventory-val small {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  font-weight: normal;
+}
+
+.vales-how-to-earn {
+  font-size: 0.78rem;
+  color: var(--text-main);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.vales-how-to-earn p {
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vales-how-to-earn i {
+  color: var(--primary);
+  width: 14px;
+}
+
+.vales-section-title {
+  font-size: 0.92rem;
+  font-weight: 600;
+  color: var(--text-main);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.vales-routines-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 250px;
+  overflow-y: auto;
+  padding-right: 4px;
+}
+
+.vale-routine-row {
+  background: var(--bg-dark);
+  border: 1px solid var(--border-color);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  transition: all 0.2s ease;
+}
+
+.vale-routine-row:hover {
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.vale-routine-row.protected {
+  border-color: rgba(34, 197, 94, 0.4);
+  background: rgba(34, 197, 94, 0.04);
+}
+
+.vale-routine-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.vale-routine-icon {
+  font-size: 1.2rem;
+}
+
+.vale-routine-title {
+  font-weight: 600;
+  font-size: 0.9rem;
+  color: var(--text-main);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.vale-routine-sub {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+/* Y2K Theme Adaptation */
+[data-theme="y2k"] .gamification-card {
+  box-shadow: 0 0 15px rgba(236, 72, 153, 0.15);
+  border-color: rgba(236, 72, 153, 0.35);
+}
+
+[data-theme="y2k"] .vales-pill {
+  border-color: #ec4899;
+  color: #ff5d8f;
+  background: rgba(236, 72, 153, 0.15);
+}
+
+[data-theme="y2k"] .xp-progress-bar {
+  background: linear-gradient(90deg, #ec4899 0%, #a855f7 50%, #70d6ff 100%);
+}
+
+
 

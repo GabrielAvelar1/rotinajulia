@@ -35,6 +35,13 @@ function isLastScheduledDay(routine, lastDateStr, todayStr) {
   return false;
 }
 
+// Identifica rotina de hidratação / beber água
+function isWaterRoutine(routine) {
+  if (!routine || !routine.title) return false;
+  const clean = routine.title.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return clean.includes('agua') || clean.includes('beber') || clean.includes('hidrata');
+}
+
 window.Routines_init = async function() {
   const dateLabel = document.getElementById('routines-date-label');
   if (dateLabel) {
@@ -271,12 +278,25 @@ window.Routines_init = async function() {
                 routine.streak_count = 1;
               }
               routine.last_completed_date = todayStr;
+
+              // Gamificação: +2 XP por rotina e verificação de vale para 'Beber água'
+              if (window.Gamification_addXP) {
+                window.Gamification_addXP(2, 'Rotina diária');
+              }
+              if (isWaterRoutine(routine)) {
+                if (window.Gamification_checkWaterStreakReward) {
+                  window.Gamification_checkWaterStreakReward(routine.streak_count);
+                }
+              }
             } else {
               // Desmarcando como concluído hoje
               if (lastCompleted === todayStr) {
                 const prevStreak = Math.max(0, currentStreak - 1);
                 routine.streak_count = prevStreak;
                 routine.last_completed_date = prevStreak > 0 ? yesterdayStr : null;
+                if (window.Gamification_removeXP) {
+                  window.Gamification_removeXP(2);
+                }
               }
             }
 
@@ -310,6 +330,31 @@ window.Routines_init = async function() {
     });
 
     list.addEventListener('click', async (e) => {
+      const valeBtn = e.target.closest('.routine-vale-btn');
+      if (valeBtn) {
+        const id = valeBtn.dataset.id;
+        const routine = window.AppState.routines.find(r => r.id === id);
+        if (routine) {
+          if (routine.has_vale) {
+            if (confirm(`Deseja remover o Vale de proteção de "${routine.title}" e devolvê-lo ao seu inventário?`)) {
+              if (window.Gamification_removeValeFromRoutine) {
+                await window.Gamification_removeValeFromRoutine(id);
+              }
+            }
+          } else {
+            if (window.Gamification_applyValeToRoutine) {
+              const applied = await window.Gamification_applyValeToRoutine(id);
+              if (!applied && window.Gamification_getState && window.Gamification_getState().vales <= 0) {
+                if (window.Gamification_openValesModal) {
+                  window.Gamification_openValesModal();
+                }
+              }
+            }
+          }
+        }
+        return;
+      }
+
       const editBtn = e.target.closest('.routine-edit-btn');
       if (editBtn) {
         const id = editBtn.dataset.id;
@@ -425,7 +470,17 @@ window.Routines_render = function() {
       effectiveStreak = rawStreak;
     } else {
       // Pulou dia ou nova
-      effectiveStreak = 0;
+      // Se a rotina possuir um Vale de proteção ativo e tiver uma sequência salva, o vale protege!
+      if (routine.has_vale && rawStreak > 0) {
+        effectiveStreak = rawStreak;
+        routine.has_vale = false;
+        routine.last_completed_date = yesterdayStr;
+        if (window.Gamification_onValeConsumed) {
+          window.Gamification_onValeConsumed(routine, rawStreak);
+        }
+      } else {
+        effectiveStreak = 0;
+      }
     }
 
     // Feedback dinâmico
@@ -469,12 +524,16 @@ window.Routines_render = function() {
             <div class="routine-title-row">
               <span class="routine-title" style="${isCompleted ? 'text-decoration: line-through;' : ''}">${routine.title}</span>
               ${notTodayBadge}
+              ${routine.has_vale ? '<span class="routine-vale-badge" title="Esta rotina está protegida com um Vale de Ofensiva!"><i class="fas fa-shield-alt"></i> Vale Ativo</span>' : ''}
             </div>
             ${feedbackHtml}
           </div>
           ${streakBadgeHtml}
         </div>
         <div class="routine-actions">
+          <button class="routine-vale-btn ${routine.has_vale ? 'active' : ''}" data-id="${routine.id}" title="${routine.has_vale ? 'Vale ativo protegendo esta rotina (clique para remover e devolver ao inventário)' : 'Proteger esta rotina com um Vale 🎟️'}">
+            <i class="fas ${routine.has_vale ? 'fa-shield-alt' : 'fa-ticket-alt'}"></i>
+          </button>
           <button class="routine-edit-btn" data-id="${routine.id}" title="Editar">✏️</button>
           <button class="routine-delete-btn" data-id="${routine.id}" title="Excluir">🗑️</button>
         </div>

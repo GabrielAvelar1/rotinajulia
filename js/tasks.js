@@ -324,6 +324,16 @@ window.Tasks_setupEventListeners = function() {
           if (error) throw error;
           
           task.completed = newCompleted;
+
+          // Gamificação: +8 XP por tarefa concluída, -8 XP se desmarcada
+          if (window.Gamification_addXP && window.Gamification_removeXP) {
+            if (newCompleted) {
+              window.Gamification_addXP(8, 'Tarefa concluída');
+            } else {
+              window.Gamification_removeXP(8);
+            }
+          }
+
           if (window.App_refreshAll) {
             window.App_refreshAll();
           } else {
