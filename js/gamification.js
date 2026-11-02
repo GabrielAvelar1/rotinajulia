@@ -11,7 +11,8 @@
     xp: 0,
     vales: 0,
     last_level_rewarded: 0,
-    last_water_streak_rewarded: 0
+    last_water_streak_rewarded: 0,
+    special_dates: {} // Formato: { "YYYY-MM": "YYYY-MM-DD" } - 1 por mês
   };
 
   function loadState() {
@@ -20,6 +21,9 @@
       if (cached) {
         const parsed = JSON.parse(cached);
         state = { ...state, ...parsed };
+        if (!state.special_dates || typeof state.special_dates !== 'object') {
+          state.special_dates = {};
+        }
       }
     } catch (e) {
       console.warn('Erro ao carregar gamificação do localStorage:', e);
@@ -218,6 +222,141 @@
     }
   };
 
+  // ==========================================================
+  // DATAS ESPECIAIS (1 dia livre por mês sem perda de ofensiva)
+  // ==========================================================
+
+  window.Gamification_isSpecialDate = function(dateStr) {
+    if (!dateStr) return false;
+    const monthKey = dateStr.substring(0, 7); // 'YYYY-MM'
+    return !!(state.special_dates && state.special_dates[monthKey] === dateStr);
+  };
+
+  window.Gamification_getSpecialDateForMonth = function(monthKey) {
+    if (!monthKey) {
+      const today = window.getLocalDateString ? window.getLocalDateString() : new Date().toISOString().split('T')[0];
+      monthKey = today.substring(0, 7);
+    }
+    return (state.special_dates && state.special_dates[monthKey]) || null;
+  };
+
+  window.Gamification_setSpecialDate = async function(dateStr) {
+    if (!dateStr) return false;
+    const monthKey = dateStr.substring(0, 7);
+    if (!state.special_dates) state.special_dates = {};
+    state.special_dates[monthKey] = dateStr;
+    saveState();
+
+    if (window.App_refreshAll) {
+      window.App_refreshAll();
+    } else {
+      window.Gamification_render();
+      if (window.Routines_render) window.Routines_render();
+      if (window.Calendar_render) window.Calendar_render();
+    }
+
+    if (window.showToast) {
+      const parts = dateStr.split('-');
+      const formatted = `${parts[2]}/${parts[1]}/${parts[0]}`;
+      window.showToast(`🎉 Data Especial marcada para ${formatted}! Nenhuma ofensiva será perdida neste dia.`, 'success');
+    }
+    return true;
+  };
+
+  window.Gamification_removeSpecialDate = async function(monthKey) {
+    if (!monthKey) {
+      const today = window.getLocalDateString ? window.getLocalDateString() : new Date().toISOString().split('T')[0];
+      monthKey = today.substring(0, 7);
+    }
+    if (state.special_dates && state.special_dates[monthKey]) {
+      delete state.special_dates[monthKey];
+      saveState();
+
+      if (window.App_refreshAll) {
+        window.App_refreshAll();
+      } else {
+        window.Gamification_render();
+        if (window.Routines_render) window.Routines_render();
+        if (window.Calendar_render) window.Calendar_render();
+      }
+
+      if (window.showToast) {
+        window.showToast('Data Especial deste mês foi desmarcada.', 'info');
+      }
+      return true;
+    }
+    return false;
+  };
+
+  window.Gamification_openSpecialDateModal = function(defaultDateStr) {
+    const modal = document.getElementById('special-date-modal');
+    if (!modal) return;
+
+    const todayStr = window.getLocalDateString ? window.getLocalDateString() : new Date().toISOString().split('T')[0];
+    const targetDate = defaultDateStr || todayStr;
+    const monthKey = targetDate.substring(0, 7);
+
+    // Formatar nome do mês
+    const parts = targetDate.split('-');
+    const mIndex = parseInt(parts[1], 10) - 1;
+    const monthNames = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho', 'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    const monthLabel = `${monthNames[mIndex] || ''} de ${parts[0]}`;
+
+    const labelEl = document.getElementById('special-date-current-month-label');
+    if (labelEl) labelEl.textContent = monthLabel;
+
+    const currentSpecial = window.Gamification_getSpecialDateForMonth(monthKey);
+    const statusBox = document.getElementById('special-date-status-box');
+    const inputEl = document.getElementById('special-date-input');
+    const removeBtn = document.getElementById('special-date-remove-btn');
+
+    if (inputEl) {
+      inputEl.value = currentSpecial || targetDate;
+      // Definir limites de data para o mês selecionado
+      const lastDay = new Date(parseInt(parts[0], 10), mIndex + 1, 0).getDate();
+      inputEl.min = `${parts[0]}-${parts[1]}-01`;
+      inputEl.max = `${parts[0]}-${parts[1]}-${String(lastDay).padStart(2, '0')}`;
+    }
+
+    if (statusBox) {
+      if (currentSpecial) {
+        const [sy, sm, sd] = currentSpecial.split('-');
+        statusBox.innerHTML = `
+          <div style="font-size: 1.4rem;">🎉</div>
+          <div>
+            <strong>Data Especial Ativa:</strong> ${sd}/${sm}/${sy}<br>
+            <small style="color:var(--text-muted);">Suas sequências de ofensiva estão 100% protegidas neste dia!</small>
+          </div>
+        `;
+        if (removeBtn) removeBtn.style.display = 'inline-flex';
+      } else {
+        statusBox.innerHTML = `
+          <div style="font-size: 1.4rem;">✨</div>
+          <div>
+            <strong>1 Data Especial Disponível</strong> para ${monthNames[mIndex]}!<br>
+            <small style="color:var(--text-muted);">Escolha um dia de festa ou folga para proteger todas as suas sequências.</small>
+          </div>
+        `;
+        if (removeBtn) removeBtn.style.display = 'none';
+      }
+    }
+
+    if (window.showModal) {
+      window.showModal('special-date-modal');
+    } else {
+      modal.style.display = 'flex';
+    }
+  };
+
+  window.Gamification_closeSpecialDateModal = function() {
+    if (window.hideModal) {
+      window.hideModal('special-date-modal');
+    } else {
+      const modal = document.getElementById('special-date-modal');
+      if (modal) modal.style.display = 'none';
+    }
+  };
+
   // Abre modal de gerenciamento de Vales
   window.Gamification_openValesModal = function() {
     const modal = document.getElementById('vales-modal');
@@ -307,9 +446,53 @@
       const target = nextMilestone === level ? level + 10 : nextMilestone;
       nextRewardHint.innerHTML = `<i class="fas fa-gift"></i> Nível ${target}: Ganhe 1 Vale 🎟️`;
     }
+
+    // Renderizar indicador de Data Especial do Mês
+    const todayStr = window.getLocalDateString ? window.getLocalDateString() : new Date().toISOString().split('T')[0];
+    const monthKey = todayStr.substring(0, 7);
+    const specialDateThisMonth = window.Gamification_getSpecialDateForMonth(monthKey);
+    const isTodaySpecial = specialDateThisMonth === todayStr;
+
+    const specialBtn = document.getElementById('special-date-btn');
+    const specialText = document.getElementById('special-date-pill-text');
+    const specialBanner = document.getElementById('special-date-banner');
+
+    if (specialBtn && specialText) {
+      if (isTodaySpecial) {
+        specialBtn.classList.add('is-today');
+        specialText.textContent = 'Hoje é Especial!';
+        specialBtn.title = 'Hoje é sua Data Especial do Mês! Todas as sequências estão protegidas.';
+      } else if (specialDateThisMonth) {
+        specialBtn.classList.remove('is-today');
+        const [_, sm, sd] = specialDateThisMonth.split('-');
+        specialText.textContent = `${sd}/${sm} (Protegido)`;
+        specialBtn.title = `Data Especial ativa em ${sd}/${sm}. Clique para ver ou alterar.`;
+      } else {
+        specialBtn.classList.remove('is-today');
+        specialText.textContent = 'Data Especial (1 livre)';
+        specialBtn.title = 'Você tem 1 Data Especial disponível este mês! Clique para marcar.';
+      }
+    }
+
+    if (specialBanner) {
+      if (isTodaySpecial) {
+        specialBanner.style.display = 'flex';
+        specialBanner.innerHTML = `
+          <div class="special-date-banner-icon">🎉</div>
+          <div class="special-date-banner-text">
+            <strong>HOJE É SUA DATA ESPECIAL DO MÊS!</strong><br>
+            Aproveite sua festa, viagem ou dia livre! Todas as suas ofensivas de hábitos estão 100% protegidas sem risco de quebrar sequência.
+          </div>
+        `;
+      } else {
+        specialBanner.style.display = 'none';
+        specialBanner.innerHTML = '';
+      }
+    }
   };
 
   window.Gamification_setupEventListeners = function() {
+    // Botão de Vales
     const valesBtn = document.getElementById('vales-btn');
     if (valesBtn) {
       valesBtn.addEventListener('click', (e) => {
@@ -333,6 +516,62 @@
       const backdrop = modal.querySelector('.modal-backdrop');
       if (backdrop) {
         backdrop.addEventListener('click', () => window.Gamification_closeValesModal());
+      }
+    }
+
+    // Botão e Modal de Data Especial
+    const specialBtn = document.getElementById('special-date-btn');
+    if (specialBtn) {
+      specialBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        window.Gamification_openSpecialDateModal();
+      });
+    }
+
+    const specialCloseBtn = document.getElementById('special-date-close-btn');
+    if (specialCloseBtn) {
+      specialCloseBtn.addEventListener('click', () => window.Gamification_closeSpecialDateModal());
+    }
+
+    const specialTodayBtn = document.getElementById('special-date-today-btn');
+    if (specialTodayBtn) {
+      specialTodayBtn.addEventListener('click', () => {
+        const todayStr = window.getLocalDateString ? window.getLocalDateString() : new Date().toISOString().split('T')[0];
+        const inputEl = document.getElementById('special-date-input');
+        if (inputEl) inputEl.value = todayStr;
+      });
+    }
+
+    const specialSaveBtn = document.getElementById('special-date-save-btn');
+    if (specialSaveBtn) {
+      specialSaveBtn.addEventListener('click', async () => {
+        const inputEl = document.getElementById('special-date-input');
+        const val = inputEl ? inputEl.value : '';
+        if (!val) {
+          if (window.showToast) window.showToast('Por favor, selecione uma data válida.', 'warning');
+          return;
+        }
+        await window.Gamification_setSpecialDate(val);
+        window.Gamification_closeSpecialDateModal();
+      });
+    }
+
+    const specialRemoveBtn = document.getElementById('special-date-remove-btn');
+    if (specialRemoveBtn) {
+      specialRemoveBtn.addEventListener('click', async () => {
+        const inputEl = document.getElementById('special-date-input');
+        const val = inputEl ? inputEl.value : '';
+        const monthKey = val ? val.substring(0, 7) : null;
+        await window.Gamification_removeSpecialDate(monthKey);
+        window.Gamification_closeSpecialDateModal();
+      });
+    }
+
+    const specialModal = document.getElementById('special-date-modal');
+    if (specialModal) {
+      const backdrop = specialModal.querySelector('.modal-backdrop');
+      if (backdrop) {
+        backdrop.addEventListener('click', () => window.Gamification_closeSpecialDateModal());
       }
     }
 

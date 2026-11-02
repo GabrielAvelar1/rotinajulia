@@ -273,6 +273,10 @@ window.Routines_init = async function() {
               } else if (lastCompleted === yesterdayStr || isLastScheduledDay(routine, lastCompleted, todayStr)) {
                 // Concluiu dia seguido
                 routine.streak_count = currentStreak + 1;
+              } else if (window.Gamification_isSpecialDate && window.Gamification_isSpecialDate(yesterdayStr) && 
+                        (lastCompleted === getYesterdayStr(yesterdayStr) || isLastScheduledDay(routine, lastCompleted, yesterdayStr))) {
+                // Ontem foi Data Especial e concluiu no dia anterior: sequência preservada e incrementada!
+                routine.streak_count = currentStreak + 1;
               } else {
                 // Iniciou nova sequência
                 routine.streak_count = 1;
@@ -474,13 +478,23 @@ window.Routines_render = function() {
     let rawStreak = parseInt(routine.streak_count) || 0;
     let lastDate = routine.last_completed_date;
     
+    const isTodaySpecial = window.Gamification_isSpecialDate && window.Gamification_isSpecialDate(todayStr);
+    const wasYesterdaySpecial = window.Gamification_isSpecialDate && window.Gamification_isSpecialDate(yesterdayStr);
+    const dayBeforeYesterdayStr = getYesterdayStr(yesterdayStr);
+
     let effectiveStreak = 0;
     if (isCompleted) {
       effectiveStreak = Math.max(1, rawStreak);
+    } else if (lastDate === todayStr) {
+      effectiveStreak = Math.max(1, rawStreak);
+    } else if (isTodaySpecial && rawStreak > 0) {
+      // HOJE é Data Especial! Ofensiva 100% protegida sem precisar cumprir
+      effectiveStreak = rawStreak;
     } else if (lastDate === yesterdayStr || isLastScheduledDay(routine, lastDate, todayStr)) {
       // Sequência do dia anterior ainda viva esperando conclusão de hoje
       effectiveStreak = rawStreak;
-    } else if (lastDate === todayStr) {
+    } else if (wasYesterdaySpecial && (lastDate === dayBeforeYesterdayStr || isLastScheduledDay(routine, lastDate, yesterdayStr))) {
+      // Ontem foi Data Especial: sequência continua viva hoje!
       effectiveStreak = rawStreak;
     } else {
       // Pulou dia ou nova
@@ -502,6 +516,10 @@ window.Routines_render = function() {
     if (isCompleted) {
       feedbackHtml = `<div class="routine-streak-feedback success">
         <i class="fas fa-fire"></i> Você completou a tarefa <strong>"${routine.title}"</strong> por <strong>${effectiveStreak} ${effectiveStreak === 1 ? 'dia seguido' : 'dias seguidos'}</strong>!
+      </div>`;
+    } else if (isTodaySpecial && effectiveStreak > 0) {
+      feedbackHtml = `<div class="routine-streak-feedback success" style="color: #f59e0b;">
+        🎉 <strong>Data Especial Ativa!</strong> Sua sequência de ${effectiveStreak} ${effectiveStreak === 1 ? 'dia' : 'dias'} está 100% protegida hoje.
       </div>`;
     } else if (effectiveStreak > 0 && appliesToday) {
       feedbackHtml = `<div class="routine-streak-feedback pending">

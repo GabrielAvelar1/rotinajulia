@@ -272,9 +272,16 @@
         <section id="routines-section" class="section">
             <div class="routines-header">
                 <h2 class="section-title"><span class="title-dash">—</span> Rotina Diária</h2>
-                <span id="routines-info" class="date-label"></span>
-                <span id="routines-date-label" class="date-label">Hoje</span>
+                <div class="routines-header-right">
+                    <button id="special-date-btn" class="special-date-pill" title="1 dia livre no mês para festas/viagens sem perder ofensivas (Clique para gerenciar)">
+                        <span class="special-date-pill-icon">🎉</span>
+                        <span id="special-date-pill-text">Data Especial</span>
+                    </button>
+                    <span id="routines-info" class="date-label"></span>
+                    <span id="routines-date-label" class="date-label">Hoje</span>
+                </div>
             </div>
+            <div id="special-date-banner" class="special-date-banner" style="display:none;"></div>
             <div id="routines-list" class="routines-list">
                 <!-- rendered by JS -->
             </div>
@@ -527,6 +534,9 @@
             </div>
 
             <div class="day-detail-body">
+                <!-- Bar de Data Especial do Mês -->
+                <div id="day-detail-special-date-container" class="day-detail-special-bar"></div>
+
                 <!-- Lista de tarefas do dia -->
                 <div class="day-detail-tasks-section">
                     <h4 class="day-detail-section-title"><i class="fas fa-tasks"></i> Tarefas deste dia</h4>
@@ -690,6 +700,54 @@
             <div class="modal-actions" style="margin-top: 20px;">
                 <button type="button" id="vales-modal-ok-btn" class="btn btn-primary btn-full">
                     Concluído
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Special Date Modal (Data Especial do Mês) -->
+    <div id="special-date-modal" class="modal" style="display:none;">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content special-date-modal-content">
+            <button class="modal-close-btn" id="special-date-close-btn" title="Fechar">✕</button>
+            <div class="special-date-modal-header">
+                <div class="special-date-header-icon">🎉</div>
+                <div>
+                    <h3 class="modal-title" style="margin-bottom: 2px;">Data Especial do Mês</h3>
+                    <p class="modal-subtitle" style="font-size: 0.82rem; color: var(--text-muted); margin: 0;">1 dia livre por mês sem perder nenhuma ofensiva</p>
+                </div>
+            </div>
+
+            <div class="special-date-card-banner">
+                <p style="font-size: 0.85rem; line-height: 1.45; margin: 0; color: var(--text-main);">
+                    Tem uma festa em família, viagem ou dia com doces e refris? 
+                    Marque esse dia como sua <strong>Data Especial</strong>!
+                    <strong>Nenhuma ofensiva ou sequência de hábitos será perdida</strong> neste dia.
+                </p>
+            </div>
+
+            <div class="special-date-status-box" id="special-date-status-box">
+                <!-- Renderizado por JS -->
+            </div>
+
+            <div class="special-date-form-group">
+                <label style="font-size: 0.85rem; font-weight: 600; display: block; margin-bottom: 8px;">
+                    Escolher data para <span id="special-date-current-month-label" style="color:var(--primary);">este mês</span>:
+                </label>
+                <div style="display: flex; gap: 8px; align-items: center;">
+                    <input type="date" id="special-date-input" class="input" style="flex: 1;">
+                    <button type="button" id="special-date-today-btn" class="btn btn-ghost btn-sm" title="Definir hoje">
+                        Hoje
+                    </button>
+                </div>
+            </div>
+
+            <div class="modal-actions" style="margin-top: 20px; display: flex; gap: 10px;">
+                <button type="button" id="special-date-save-btn" class="btn btn-primary" style="flex: 1;">
+                    <i class="fas fa-check"></i> Salvar Data Especial
+                </button>
+                <button type="button" id="special-date-remove-btn" class="btn btn-ghost" style="color: #ef4444; display: none;">
+                    <i class="fas fa-trash"></i> Remover
                 </button>
             </div>
         </div>

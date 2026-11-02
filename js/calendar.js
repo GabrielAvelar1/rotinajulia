@@ -423,9 +423,12 @@ window.Calendar_renderMain = function() {
       dayTasks = dayTasks.filter(t => t.folder_id === window.AppState.currentCalendarFilter);
     }
     
+    const isSpecialDate = window.Gamification_isSpecialDate && window.Gamification_isSpecialDate(cellDateStr);
+
     let classes = 'cal-day';
     if (isOtherMonth) classes += ' other-month';
     if (isToday) classes += ' cal-today';
+    if (isSpecialDate) classes += ' cal-special-date';
     
     let tasksHtml = '';
     const displayTasks = dayTasks.slice(0, 3);
@@ -444,8 +447,8 @@ window.Calendar_renderMain = function() {
     }
     
     html += `
-      <div class="${classes}" data-date="${cellDateStr}">
-        <div class="cal-day-num">${dayNum}</div>
+      <div class="${classes}" data-date="${cellDateStr}" ${isSpecialDate ? 'title="Data Especial do Mês: Ofensivas protegidas! 🎉"' : ''}>
+        <div class="cal-day-num">${dayNum} ${isSpecialDate ? '<span class="cal-special-badge" title="Data Especial: Ofensivas protegidas! 🎉">🎉</span>' : ''}</div>
         <div class="cal-day-tasks">
           ${tasksHtml}
         </div>
@@ -672,6 +675,67 @@ window.Calendar_renderDayDetail = function(dateStr) {
 
   if (subtitleEl) {
     subtitleEl.textContent = `${weekday} • ${dayTasks.length} tarefa${dayTasks.length !== 1 ? 's' : ''} (${pending} pendente${pending !== 1 ? 's' : ''})`;
+  }
+
+  // Bar de Data Especial do Mês no detalhe do dia
+  const specialBar = document.getElementById('day-detail-special-date-container');
+  if (specialBar) {
+    const isSpecial = window.Gamification_isSpecialDate && window.Gamification_isSpecialDate(dateStr);
+    const monthKey = dateStr.substring(0, 7);
+    const currentSpecial = window.Gamification_getSpecialDateForMonth ? window.Gamification_getSpecialDateForMonth(monthKey) : null;
+    
+    if (isSpecial) {
+      specialBar.innerHTML = `
+        <div class="special-day-badge-bar is-active">
+          <div class="special-day-badge-info">
+            <span class="special-day-emoji">🎉</span>
+            <div>
+              <strong>Esta é a sua Data Especial de ${monthName}!</strong>
+              <small>Nenhuma sequência de hábitos será perdida neste dia.</small>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-ghost special-day-remove-btn" data-month="${monthKey}" style="color:#ef4444;" title="Desmarcar">
+            Desmarcar
+          </button>
+        </div>
+      `;
+    } else {
+      const extraHint = currentSpecial ? `(Substituirá dia ${currentSpecial.split('-')[2]})` : `(1 dia disponível)`;
+      specialBar.innerHTML = `
+        <div class="special-day-badge-bar">
+          <div class="special-day-badge-info">
+            <span class="special-day-emoji">🌟</span>
+            <div>
+              <span>Definir como Data Especial do Mês</span>
+              <small>Preserva todas as suas sequências de hábitos neste dia.</small>
+            </div>
+          </div>
+          <button type="button" class="btn btn-sm btn-ghost special-day-set-btn" data-date="${dateStr}" style="color:#f59e0b;" title="Marcar como Data Especial">
+            🎉 Ativar ${extraHint}
+          </button>
+        </div>
+      `;
+    }
+
+    const setBtn = specialBar.querySelector('.special-day-set-btn');
+    if (setBtn) {
+      setBtn.addEventListener('click', async () => {
+        if (window.Gamification_setSpecialDate) {
+          await window.Gamification_setSpecialDate(dateStr);
+          window.Calendar_renderDayDetail(dateStr);
+        }
+      });
+    }
+
+    const removeBtn = specialBar.querySelector('.special-day-remove-btn');
+    if (removeBtn) {
+      removeBtn.addEventListener('click', async () => {
+        if (window.Gamification_removeSpecialDate) {
+          await window.Gamification_removeSpecialDate(monthKey);
+          window.Calendar_renderDayDetail(dateStr);
+        }
+      });
+    }
   }
 
   if (!taskList) return;
