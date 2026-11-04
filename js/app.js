@@ -218,4 +218,14 @@ document.addEventListener('DOMContentLoaded', async () => {
       }
     });
   }
+
+  // Abrir seletor de calendário nativo ao tocar em qualquer lugar de um input[type="date"]
+  document.addEventListener('click', (e) => {
+    const dateInput = e.target.closest('input[type="date"]');
+    if (dateInput && typeof dateInput.showPicker === 'function') {
+      try {
+        dateInput.showPicker();
+      } catch (err) {}
+    }
+  });
 });

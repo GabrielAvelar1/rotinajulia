@@ -554,13 +554,15 @@ window.Routines_render = function() {
           <div class="routine-icon">${routine.icon || '✨'}</div>
           <div class="routine-info-col">
             <div class="routine-title-row">
-              <span class="routine-title" style="${isCompleted ? 'text-decoration: line-through;' : ''}">${routine.title}</span>
-              ${notTodayBadge}
-              ${routine.has_vale ? '<span class="routine-vale-badge" title="Esta rotina está protegida com um Vale de Ofensiva!"><i class="fas fa-shield-alt"></i> Vale Ativo</span>' : ''}
+              <div class="routine-title-group">
+                <span class="routine-title" style="${isCompleted ? 'text-decoration: line-through;' : ''}">${routine.title}</span>
+                ${notTodayBadge}
+                ${routine.has_vale ? '<span class="routine-vale-badge" title="Esta rotina está protegida com um Vale de Ofensiva!"><i class="fas fa-shield-alt"></i> Vale Ativo</span>' : ''}
+              </div>
+              ${streakBadgeHtml}
             </div>
             ${feedbackHtml}
           </div>
-          ${streakBadgeHtml}
         </div>
         <div class="routine-actions">
           <button class="routine-vale-btn ${routine.has_vale ? 'active' : ''}" data-id="${routine.id}" title="${routine.has_vale ? 'Vale ativo protegendo esta rotina (clique para remover e devolver ao inventário)' : 'Proteger esta rotina com um Vale 🎟️'}">
