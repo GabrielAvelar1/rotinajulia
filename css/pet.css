@@ -389,3 +389,264 @@
     opacity: 0;
   }
 }
+
+/* ==========================================================================
+   PRESENTE DO PET (Entrega do Vale de Proteção de Ofensiva)
+   ========================================================================== */
+
+/* Ícone de presente flutuando ao lado do Pet */
+.pet-gift-box {
+  position: absolute;
+  top: -14px;
+  right: -8px;
+  font-size: 1.45rem;
+  z-index: 12;
+  filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.45));
+  animation: petGiftBoxBob 0.9s ease-in-out infinite alternate;
+  pointer-events: none;
+}
+
+@keyframes petGiftBoxBob {
+  0% { transform: translateY(0) scale(0.95) rotate(-8deg); }
+  100% { transform: translateY(-7px) scale(1.15) rotate(10deg); }
+}
+
+/* Brilho especial no Pet quando tem presente para entregar */
+#site-pet.has-gift {
+  filter: drop-shadow(0 0 16px rgba(250, 204, 21, 0.75)) drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+}
+
+#site-pet.has-gift .pet-bubble {
+  background: linear-gradient(135deg, #f59e0b, #ec4899) !important;
+  color: #ffffff !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  font-weight: 700;
+  box-shadow: 0 4px 18px rgba(245, 158, 11, 0.5);
+  animation: petGiftBubblePulse 1.6s ease-in-out infinite;
+}
+
+#site-pet.has-gift .pet-bubble::after {
+  border-color: #ec4899 transparent transparent !important;
+}
+
+@keyframes petGiftBubblePulse {
+  0%, 100% { transform: translateX(-50%) scale(1); }
+  50% { transform: translateX(-50%) scale(1.08); }
+}
+
+/* Modal de Entrega do Presente */
+.pet-gift-modal {
+  position: fixed;
+  inset: 0;
+  z-index: 10001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.32s ease;
+}
+
+.pet-gift-modal.is-open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.pet-gift-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 15, 26, 0.84);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+}
+
+.pet-gift-card {
+  position: relative;
+  z-index: 2;
+  background: linear-gradient(145deg, rgba(30, 41, 59, 0.98), rgba(15, 23, 42, 0.98));
+  border: 1px solid rgba(250, 204, 21, 0.5);
+  border-radius: 26px;
+  padding: 30px 24px;
+  max-width: 380px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 0 45px rgba(245, 158, 11, 0.32), 0 20px 45px rgba(0, 0, 0, 0.65);
+  transform: scale(0.85) translateY(25px);
+  transition: transform 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275), opacity 0.3s ease;
+  overflow: hidden;
+}
+
+.pet-gift-modal.is-open .pet-gift-card {
+  transform: scale(1) translateY(0);
+}
+
+.pet-gift-modal.is-closing .pet-gift-card {
+  transform: scale(0.85) translateY(-25px);
+  opacity: 0;
+}
+
+[data-theme="light"] .pet-gift-card {
+  background: linear-gradient(145deg, #ffffff, #f8fafc);
+  border-color: rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 35px rgba(245, 158, 11, 0.28), 0 15px 35px rgba(0, 0, 0, 0.15);
+}
+
+.pet-gift-box-anim {
+  position: relative;
+  width: 84px;
+  height: 84px;
+  margin: 0 auto 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.gift-box-icon {
+  font-size: 3.8rem;
+  z-index: 2;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.45));
+  animation: giftBoxPop 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes giftBoxPop {
+  0% { transform: scale(0) rotate(-15deg); }
+  50% { transform: scale(1.3) rotate(12deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+.gift-rays {
+  position: absolute;
+  width: 120px;
+  height: 120px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(250, 204, 21, 0.45) 0%, rgba(250, 204, 21, 0) 70%);
+  z-index: 1;
+  animation: giftRaysSpin 4s linear infinite;
+}
+
+@keyframes giftRaysSpin {
+  0% { transform: scale(0.8) rotate(0deg); opacity: 0.5; }
+  50% { transform: scale(1.25) rotate(180deg); opacity: 1; }
+  100% { transform: scale(0.8) rotate(360deg); opacity: 0.5; }
+}
+
+.pet-gift-pill {
+  display: inline-block;
+  padding: 4px 14px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.25), rgba(236, 72, 153, 0.25));
+  border: 1px solid rgba(250, 204, 21, 0.55);
+  color: #fde047;
+  font-size: 0.76rem;
+  font-weight: 700;
+  letter-spacing: 0.8px;
+  margin-bottom: 10px;
+}
+
+[data-theme="light"] .pet-gift-pill {
+  color: #b45309;
+  background: rgba(254, 243, 199, 0.9);
+}
+
+.pet-gift-title {
+  font-size: 1.35rem;
+  font-weight: 800;
+  margin: 0 0 6px;
+  color: #ffffff;
+  line-height: 1.3;
+}
+
+[data-theme="light"] .pet-gift-title {
+  color: #0f172a;
+}
+
+.pet-gift-subtitle {
+  font-size: 0.86rem;
+  color: var(--text-muted);
+  margin: 0 0 20px;
+  line-height: 1.4;
+}
+
+[data-theme="light"] .pet-gift-subtitle {
+  color: #64748b;
+}
+
+.pet-voucher-showcase {
+  display: flex;
+  align-items: center;
+  gap: 15px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.15), rgba(236, 72, 153, 0.15));
+  border: 1px solid rgba(255, 255, 255, 0.18);
+  border-radius: 16px;
+  padding: 16px;
+  margin-bottom: 22px;
+  text-align: left;
+  box-shadow: inset 0 0 20px rgba(255, 255, 255, 0.05);
+}
+
+[data-theme="light"] .pet-voucher-showcase {
+  background: linear-gradient(135deg, rgba(254, 243, 199, 0.7), rgba(252, 231, 243, 0.7));
+  border-color: rgba(245, 158, 11, 0.35);
+}
+
+.voucher-shield-wrap {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  flex-shrink: 0;
+  background: linear-gradient(135deg, #f59e0b, #ec4899);
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 15px rgba(236, 72, 153, 0.4);
+}
+
+.voucher-shield-icon {
+  font-size: 1.6rem;
+}
+
+.voucher-text-wrap {
+  flex: 1;
+}
+
+.voucher-text-wrap strong {
+  display: block;
+  font-size: 0.98rem;
+  color: #ffffff;
+  margin-bottom: 4px;
+}
+
+[data-theme="light"] .voucher-text-wrap strong {
+  color: #0f172a;
+}
+
+.voucher-text-wrap small {
+  display: block;
+  font-size: 0.8rem;
+  color: #cbd5e1;
+  line-height: 1.35;
+}
+
+[data-theme="light"] .voucher-text-wrap small {
+  color: #475569;
+}
+
+.pet-claim-btn {
+  width: 100%;
+  padding: 14px;
+  border-radius: 14px;
+  border: none;
+  background: linear-gradient(135deg, #ec4899, #f59e0b);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  box-shadow: 0 6px 20px rgba(236, 72, 153, 0.45);
+  transition: transform 0.18s ease, filter 0.18s ease;
+}
+
+.pet-claim-btn:active {
+  transform: scale(0.97);
+}

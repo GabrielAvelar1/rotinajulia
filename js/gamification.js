@@ -11,6 +11,7 @@
     xp: 0,
     coins: 0,
     vales: 0,
+    pending_vales: 0,
     last_level_rewarded: 0,
     last_water_streak_rewarded: 0,
     special_dates: {}, // Formato: { "YYYY-MM": "YYYY-MM-DD" } - 1 por mês
@@ -35,6 +36,9 @@
       // Inicialização segura de moedas (se for novo, calcula retroativo por XP * 3)
       if (typeof state.coins !== 'number') {
         state.coins = (state.xp || 0) * 3;
+      }
+      if (typeof state.pending_vales !== 'number') {
+        state.pending_vales = 0;
       }
       if (!Array.isArray(state.pets_inventory) || state.pets_inventory.length === 0) {
         state.pets_inventory = ['penguin'];
@@ -183,19 +187,22 @@
   };
 
   window.Gamification_onLevelUp = function(newLevel, oldLevel) {
-    // Efeito sonoro / celebração
     let celebrationMsg = `⭐ Parabéns! Você subiu para o Nível ${newLevel}!`;
 
     // Verifica se atingiu nível múltiplo de 10 (10, 20, 30...)
     if (newLevel % 10 === 0 && newLevel > (state.last_level_rewarded || 0)) {
-      state.vales += 1;
+      state.pending_vales = (state.pending_vales || 0) + 1;
       state.last_level_rewarded = newLevel;
       saveState();
       window.Gamification_render();
 
-      celebrationMsg = `🎉 NÍVEL ${newLevel} ALCANÇADO! Você conquistou 1 Vale Especial de Ofensiva 🎟️!`;
+      celebrationMsg = `🎉 NÍVEL ${newLevel} ALCANÇADO! O Pinguim tem um presente especial para você 🎁!`;
       if (window.showToast) {
         window.showToast(celebrationMsg, 'success');
+      }
+
+      if (window.Pet_notifyPendingGift) {
+        window.Pet_notifyPendingGift({ reason: 'level', level: newLevel });
       }
       return;
     }
@@ -211,15 +218,39 @@
     
     // Premiar a cada ciclo de 3 dias (ex: 3, 6, 9, 12...)
     if (streakCount % 3 === 0 && streakCount > (state.last_water_streak_rewarded || 0)) {
-      state.vales += 1;
+      state.pending_vales = (state.pending_vales || 0) + 1;
       state.last_water_streak_rewarded = streakCount;
       saveState();
       window.Gamification_render();
 
       if (window.showToast) {
-        window.showToast(`💧 Incrível! ${streakCount} dias bebendo água! Você ganhou 1 Vale de Ofensiva 🎟️!`, 'success');
+        window.showToast(`💧 Incrível! ${streakCount} dias bebendo água! O Pinguim tem um presente para você 🎁!`, 'success');
+      }
+
+      if (window.Pet_notifyPendingGift) {
+        window.Pet_notifyPendingGift({ reason: 'water', streak: streakCount });
       }
     }
+  };
+
+  // Gerenciamento de Vales Pendentes entregues pelo Pet
+  window.Gamification_hasPendingGift = function() {
+    return (state.pending_vales || 0) > 0;
+  };
+
+  window.Gamification_getPendingGiftsCount = function() {
+    return state.pending_vales || 0;
+  };
+
+  window.Gamification_claimPendingGift = function() {
+    if ((state.pending_vales || 0) > 0) {
+      state.pending_vales -= 1;
+      state.vales = (state.vales || 0) + 1;
+      saveState();
+      window.Gamification_render();
+      return true;
+    }
+    return false;
   };
 
   // Aplica um vale como escudo protetor na rotina
@@ -542,6 +573,11 @@
       const nextMilestone = Math.ceil(level / 10) * 10;
       const target = nextMilestone === level ? level + 10 : nextMilestone;
       nextRewardHint.innerHTML = `<i class="fas fa-gift"></i> Nível ${target}: Ganhe 1 Vale 🎟️`;
+    }
+
+    // Sincroniza estado de presentes pendentes com o Pet
+    if (window.Pet_updateGiftState) {
+      window.Pet_updateGiftState(window.Gamification_hasPendingGift());
     }
 
     // Renderizar indicador de Data Especial do Mês

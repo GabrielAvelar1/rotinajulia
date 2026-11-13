@@ -251,6 +251,7 @@
     return `
       <div class="pet-shadow"></div>
       <div class="pet-bubble" id="pet-speech-bubble">${defaultSound}</div>
+      <div class="pet-gift-box" id="pet-gift-box" style="display: none;">🎁</div>
       <div class="pet-svg-container">
         <svg viewBox="0 0 64 64" width="${w}" height="${h}" style="overflow: visible;">
           ${bodySvgContent}
@@ -527,6 +528,127 @@
     }
   }
 
+  // Partículas mágicas especiais na entrega de presente
+  function spawnCelebrationGiftParticles(originX, originY) {
+    const emojis = ['🎟️', '🛡️', '✨', '💖', '🎁', '⭐', '💫', '🎉'];
+    for (let i = 0; i < 16; i++) {
+      const p = document.createElement('div');
+      p.className = 'pet-particle';
+      p.textContent = emojis[Math.floor(Math.random() * emojis.length)];
+      p.style.left = `${originX + (Math.random() * 80 - 40)}px`;
+      p.style.top = `${originY + (Math.random() * 40 - 20)}px`;
+      p.style.setProperty('--tx', `${(Math.random() - 0.5) * 110}px`);
+      p.style.fontSize = `${1.2 + Math.random() * 0.7}rem`;
+      document.body.appendChild(p);
+
+      setTimeout(() => p.remove(), 1400);
+    }
+  }
+
+  // Verifica e atualiza o estado visual do presente no Pet
+  function checkPendingGiftState() {
+    const hasGift = Boolean(window.Gamification_hasPendingGift && window.Gamification_hasPendingGift());
+    if (!petEl) return;
+    const giftBox = document.getElementById('pet-gift-box');
+
+    if (hasGift) {
+      petEl.classList.add('has-gift');
+      if (giftBox) giftBox.style.display = 'block';
+      showBubble('Tenho um presente para você! 🎁', 6000);
+    } else {
+      petEl.classList.remove('has-gift');
+      if (giftBox) giftBox.style.display = 'none';
+    }
+  }
+
+  // Entrega mágica do presente pelo Pet quando ela toca/faz carinho
+  function deliverGiftAnimation() {
+    state = 'HAPPY';
+    showBubble('Para você! 💖✨', 3000);
+    spawnCelebrationGiftParticles(x + PET_WIDTH / 2, y);
+
+    // Pulinho animado de felicidade do pinguim
+    vy = -3.8;
+
+    setTimeout(() => {
+      openGiftDeliveryModal();
+    }, 380);
+  }
+
+  // Modal com animação da entrega do Vale Protetor
+  function openGiftDeliveryModal() {
+    let modal = document.getElementById('pet-gift-delivery-modal');
+    if (!modal) {
+      modal = document.createElement('div');
+      modal.id = 'pet-gift-delivery-modal';
+      modal.className = 'pet-gift-modal';
+      modal.innerHTML = `
+        <div class="pet-gift-backdrop" id="pet-gift-backdrop"></div>
+        <div class="pet-gift-card">
+          <div class="pet-gift-box-anim">
+            <div class="gift-box-icon">🎁</div>
+            <div class="gift-rays"></div>
+          </div>
+
+          <div class="pet-gift-header">
+            <span class="pet-gift-pill">✨ PRESENTE DO SEU PET ✨</span>
+            <h3 class="pet-gift-title">Você ganhou um Vale de Ofensiva!</h3>
+            <p class="pet-gift-subtitle">O Pinguim guardou esse presente especial para você com muito carinho!</p>
+          </div>
+
+          <div class="pet-voucher-showcase">
+            <div class="voucher-shield-wrap">
+              <span class="voucher-shield-icon">🛡️</span>
+            </div>
+            <div class="voucher-text-wrap">
+              <strong>1x Vale Protetor de Ofensiva</strong>
+              <small>Protege suas sequências de hábitos e rotinas se você esquecer algum dia!</small>
+            </div>
+          </div>
+
+          <button type="button" class="pet-claim-btn" id="pet-gift-claim-btn">
+            💖 Guardar no Inventário (+1 Vale)
+          </button>
+        </div>
+      `;
+      document.body.appendChild(modal);
+
+      const claimBtn = modal.querySelector('#pet-gift-claim-btn');
+      const backdrop = modal.querySelector('#pet-gift-backdrop');
+
+      const handleClaim = () => {
+        if (window.Gamification_claimPendingGift) {
+          window.Gamification_claimPendingGift();
+        }
+
+        // Celebração na tela
+        spawnCelebrationGiftParticles(window.innerWidth / 2, window.innerHeight / 2);
+        if (window.showToast) {
+          window.showToast('🛡️ Vale de Ofensiva guardado com sucesso no inventário!', 'success');
+        }
+
+        // Animação de saída suave
+        modal.classList.add('is-closing');
+        setTimeout(() => {
+          modal.style.display = 'none';
+          modal.classList.remove('is-closing');
+          modal.classList.remove('is-open');
+          checkPendingGiftState();
+        }, 320);
+      };
+
+      claimBtn.addEventListener('click', handleClaim);
+      backdrop.addEventListener('click', handleClaim);
+    }
+
+    modal.style.display = 'flex';
+    // Dispara a animação de abertura
+    setTimeout(() => {
+      modal.classList.add('is-open');
+      spawnCelebrationGiftParticles(window.innerWidth / 2, window.innerHeight / 2 - 40);
+    }, 15);
+  }
+
   // Atualiza as classes CSS do pet conforme o estado atual
   function updatePetAppearance() {
     if (!petEl) return;
@@ -791,8 +913,9 @@
       }
     }
 
-    // Soneca após 8 segundos sem interação (conforme solicitado pelo usuário!)
-    if (state === 'IDLE' && Date.now() - idleSinceTime > SLEEP_IDLE_TIMEOUT) {
+    // Soneca após 8 segundos sem interação (não dorme se tiver presente pendente para entregar!)
+    const hasPendingGift = Boolean(window.Gamification_hasPendingGift && window.Gamification_hasPendingGift());
+    if (state === 'IDLE' && Date.now() - idleSinceTime > SLEEP_IDLE_TIMEOUT && !hasPendingGift) {
       state = 'SLEEPING';
       showBubble('Zzz... 💤', 4500);
     }
@@ -816,6 +939,11 @@
       }
       autonomousTimer = setTimeout(autonomousBehavior, 4000);
       return;
+    }
+
+    const hasPendingGift = Boolean(window.Gamification_hasPendingGift && window.Gamification_hasPendingGift());
+    if (hasPendingGift && Math.random() < 0.42) {
+      showBubble('Tenho um presente para você! 🎁', 3800);
     }
 
     const rand = Math.random();
@@ -904,8 +1032,13 @@
 
     const duration = Date.now() - dragStartTime;
 
-    // Se foi apenas um toque rápido sem arrastar: Pulinho de alegria!
+    // Se foi apenas um toque rápido sem arrastar: Entrega do presente ou pulinho de carinho!
     if (!hasMovedDuringDrag && duration < 350) {
+      if (window.Gamification_hasPendingGift && window.Gamification_hasPendingGift()) {
+        deliverGiftAnimation();
+        return;
+      }
+
       state = 'HAPPY';
       showBubble('💖 Piu!', 1800);
       spawnHearts(x + PET_WIDTH / 2, y);
@@ -986,6 +1119,7 @@
     }
 
     bubbleEl = document.getElementById('pet-speech-bubble');
+    checkPendingGiftState();
 
     petEl.addEventListener('pointerdown', handlePointerDown);
     window.addEventListener('pointermove', handlePointerMove);
@@ -1154,7 +1288,18 @@
       petEl.style.display = isEnabled ? 'block' : 'none';
       petEl.innerHTML = createPetMarkup();
       bubbleEl = document.getElementById('pet-speech-bubble');
+      checkPendingGiftState();
     }
+  };
+
+  window.Pet_updateGiftState = function(hasGift) {
+    checkPendingGiftState();
+  };
+
+  window.Pet_notifyPendingGift = function(giftData) {
+    checkPendingGiftState();
+    wakeUp();
+    showBubble('Tenho um presente para você! 🎁', 6000);
   };
 
   if (document.readyState === 'loading') {
