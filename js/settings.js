@@ -85,6 +85,11 @@
       }
     });
 
+    const petToggle = document.getElementById('settings-pet-toggle');
+    if (petToggle && window.Pet_getEnabled) {
+      petToggle.checked = window.Pet_getEnabled();
+    }
+
     if (window.showModal) {
       window.showModal('settings-modal');
     } else {
@@ -109,6 +114,12 @@
 
       window.Settings_applyTheme(currentSelectedTheme);
       window.Settings_applyAccentColor(currentSelectedColor, currentSelectedSecondary, true);
+
+      // Atualiza mascote
+      const petToggle = document.getElementById('settings-pet-toggle');
+      if (petToggle && window.Pet_setEnabled) {
+        window.Pet_setEnabled(petToggle.checked);
+      }
 
       // Sincronizar com o Supabase site_config se o usuário estiver logado
       if (window.AppState?.user && window.AppState?.siteConfig?.id) {

@@ -1,0 +1,391 @@
+/* pet.css - Mascote Pinguim Fofinho (Modelo V1 Clássico Ajustado 56px) */
+
+#site-pet {
+  position: fixed;
+  width: 56px;
+  height: 56px;
+  z-index: 9999;
+  cursor: grab;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+  pointer-events: auto;
+  transition: transform 0.12s ease-out;
+  filter: drop-shadow(0 5px 12px rgba(0, 0, 0, 0.38));
+}
+
+#site-pet:active,
+#site-pet.is-dragging {
+  cursor: grabbing;
+  transform: scale(1.08);
+  filter: drop-shadow(0 10px 18px rgba(0, 0, 0, 0.48));
+}
+
+/* Sombra suave no chão ou plataforma */
+.pet-shadow {
+  position: absolute;
+  bottom: -3px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40px;
+  height: 7px;
+  background: rgba(0, 0, 0, 0.28);
+  border-radius: 50%;
+  pointer-events: none;
+  transition: all 0.2s ease;
+  z-index: 1;
+}
+
+#site-pet.is-falling .pet-shadow,
+#site-pet.is-flying .pet-shadow,
+#site-pet.is-dragging .pet-shadow {
+  transform: translateX(-50%) scale(0.45);
+  opacity: 0.15;
+}
+
+/* Corpo principal do SVG */
+.pet-svg-container {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  z-index: 2;
+  transform-origin: center bottom;
+}
+
+.pet-facing-left .pet-svg-container {
+  transform: scaleX(-1);
+}
+
+/* Asinhas com pivô nos ombros (ViewBox 64x64) */
+.pet-flipper-left {
+  transform-origin: 12px 32px;
+}
+
+.pet-flipper-right {
+  transform-origin: 52px 32px;
+}
+
+/* Orelhinhas caídas da Lira com pivô no topo */
+#site-pet[data-pet="lira"] .pet-flipper-left {
+  transform-origin: 16px 20px;
+}
+#site-pet[data-pet="lira"] .pet-flipper-right {
+  transform-origin: 48px 20px;
+}
+
+/* 1. IDLE (Parado respirando fofo) */
+#site-pet.pet-idle .pet-svg-container {
+  animation: petBreathe 3s ease-in-out infinite;
+}
+
+@keyframes petBreathe {
+  0%, 100% { transform: scale(1, 1); }
+  50% { transform: scale(1.03, 0.97); }
+}
+
+.pet-facing-left.pet-idle .pet-svg-container {
+  animation: petBreatheLeft 3s ease-in-out infinite;
+}
+
+@keyframes petBreatheLeft {
+  0%, 100% { transform: scaleX(-1) scale(1, 1); }
+  50% { transform: scaleX(-1) scale(1.03, 0.97); }
+}
+
+/* Piscar de olhos */
+.pet-eye {
+  transform-origin: 32px 28px;
+  animation: petEyeBlink 4.5s infinite;
+}
+
+@keyframes petEyeBlink {
+  0%, 94%, 98%, 100% { transform: scaleY(1); }
+  96% { transform: scaleY(0.1); }
+}
+
+/* 2. ANDANDO (Waddling) */
+#site-pet.pet-walking .pet-svg-container {
+  animation: petWaddle 0.42s ease-in-out infinite alternate;
+}
+
+@keyframes petWaddle {
+  0% { transform: rotate(-6deg) translateY(-2px); }
+  100% { transform: rotate(6deg) translateY(0px); }
+}
+
+.pet-facing-left.pet-walking .pet-svg-container {
+  animation: petWaddleLeft 0.42s ease-in-out infinite alternate;
+}
+
+@keyframes petWaddleLeft {
+  0% { transform: scaleX(-1) rotate(-6deg) translateY(-2px); }
+  100% { transform: scaleX(-1) rotate(6deg) translateY(0px); }
+}
+
+#site-pet.pet-walking .pet-flipper-left {
+  animation: flapLeftWalk 0.42s ease-in-out infinite alternate;
+}
+#site-pet.pet-walking .pet-flipper-right {
+  animation: flapRightWalk 0.42s ease-in-out infinite alternate;
+}
+
+@keyframes flapLeftWalk {
+  0% { transform: rotate(-16deg); }
+  100% { transform: rotate(14deg); }
+}
+@keyframes flapRightWalk {
+  0% { transform: rotate(14deg); }
+  100% { transform: rotate(-16deg); }
+}
+
+/* 3. SENDO ARRASTADO (Batendo asas rápido) */
+#site-pet.is-dragging .pet-svg-container {
+  animation: petDangle 0.22s ease-in-out infinite alternate;
+}
+
+@keyframes petDangle {
+  0% { transform: scale(0.96, 1.06) rotate(-4deg); }
+  100% { transform: scale(0.96, 1.06) rotate(4deg); }
+}
+
+#site-pet.is-dragging .pet-flipper-left {
+  animation: flapWingsLeftFast 0.10s ease-in-out infinite alternate !important;
+}
+#site-pet.is-dragging .pet-flipper-right {
+  animation: flapWingsRightFast 0.10s ease-in-out infinite alternate !important;
+}
+
+@keyframes flapWingsLeftFast {
+  0% { transform: rotate(-65deg) scaleY(1.15); }
+  100% { transform: rotate(20deg) scaleY(0.92); }
+}
+
+@keyframes flapWingsRightFast {
+  0% { transform: rotate(65deg) scaleY(1.15); }
+  100% { transform: rotate(-20deg) scaleY(0.92); }
+}
+
+/* 4. CAINDO / PLANANDO DEVAGAR (Batendo as asinhas a toda velocidade no ar!) */
+#site-pet.is-falling .pet-svg-container {
+  animation: petFallingFlutter 0.18s ease-in-out infinite alternate;
+}
+
+@keyframes petFallingFlutter {
+  0% { transform: translateY(-3px) rotate(-5deg); }
+  100% { transform: translateY(2px) rotate(5deg); }
+}
+
+.pet-facing-left.is-falling .pet-svg-container {
+  animation: petFallingFlutterLeft 0.18s ease-in-out infinite alternate;
+}
+
+@keyframes petFallingFlutterLeft {
+  0% { transform: scaleX(-1) translateY(-3px) rotate(-5deg); }
+  100% { transform: scaleX(-1) translateY(2px) rotate(5deg); }
+}
+
+#site-pet.is-falling .pet-flipper-left {
+  animation: flapWingsLeftFast 0.09s ease-in-out infinite alternate !important;
+}
+#site-pet.is-falling .pet-flipper-right {
+  animation: flapWingsRightFast 0.09s ease-in-out infinite alternate !important;
+}
+
+/* 5. VOANDO ATÉ O MODAL (Asas batendo rápido, inclinado para o destino) */
+#site-pet.is-flying .pet-svg-container {
+  animation: petFlyBob 0.14s ease-in-out infinite alternate;
+}
+
+@keyframes petFlyBob {
+  0% { transform: translateY(-4px) rotate(-8deg); }
+  100% { transform: translateY(4px) rotate(4deg); }
+}
+
+.pet-facing-left.is-flying .pet-svg-container {
+  animation: petFlyBobLeft 0.14s ease-in-out infinite alternate;
+}
+
+@keyframes petFlyBobLeft {
+  0% { transform: scaleX(-1) translateY(-4px) rotate(-8deg); }
+  100% { transform: scaleX(-1) translateY(4px) rotate(4deg); }
+}
+
+#site-pet.is-flying .pet-flipper-left {
+  animation: flapWingsLeftFast 0.08s ease-in-out infinite alternate !important;
+}
+#site-pet.is-flying .pet-flipper-right {
+  animation: flapWingsRightFast 0.08s ease-in-out infinite alternate !important;
+}
+
+/* 6. TOMBO AO POUSAR / COLIDIR E SE LEVANTAR */
+#site-pet.pet-tumble .pet-svg-container {
+  animation: petTumbleImpact 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes petTumbleImpact {
+  0% { transform: scale(1.36, 0.64) translateY(6px); }
+  35% { transform: scale(0.85, 1.15) translateY(-4px) rotate(10deg); }
+  70% { transform: scale(1.06, 0.94) rotate(-3deg); }
+  100% { transform: scale(1, 1) rotate(0deg); }
+}
+
+.pet-facing-left.pet-tumble .pet-svg-container {
+  animation: petTumbleImpactLeft 0.45s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes petTumbleImpactLeft {
+  0% { transform: scaleX(-1) scale(1.36, 0.64) translateY(6px); }
+  35% { transform: scaleX(-1) scale(0.85, 1.15) translateY(-4px) rotate(10deg); }
+  70% { transform: scaleX(-1) scale(1.06, 0.94) rotate(-3deg); }
+  100% { transform: scaleX(-1) scale(1, 1) rotate(0deg); }
+}
+
+#site-pet.pet-tumble .pet-eye {
+  display: none !important;
+}
+#site-pet.pet-tumble .pet-eye-tumble {
+  display: block !important;
+}
+
+/* 7. DORMINDO (Sleeping com olhinhos fechados e respiração calma) */
+#site-pet.pet-sleeping .pet-eye {
+  display: none !important;
+}
+#site-pet.pet-sleeping .pet-eye-sleep {
+  display: block !important;
+}
+
+#site-pet.pet-sleeping .pet-svg-container {
+  animation: petSleep 3.6s ease-in-out infinite;
+}
+
+@keyframes petSleep {
+  0%, 100% { transform: scale(1.02, 0.94) translateY(2px); }
+  50% { transform: scale(0.98, 1.01) translateY(0px); }
+}
+
+.pet-facing-left.pet-sleeping .pet-svg-container {
+  animation: petSleepLeft 3.6s ease-in-out infinite;
+}
+
+@keyframes petSleepLeft {
+  0%, 100% { transform: scaleX(-1) scale(1.02, 0.94) translateY(2px); }
+  50% { transform: scaleX(-1) scale(0.98, 1.01) translateY(0px); }
+}
+
+/* 8. FELIZ / PULO DE ALEGRIA */
+#site-pet.pet-happy .pet-svg-container {
+  animation: petJumpJoy 0.42s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes petJumpJoy {
+  0% { transform: scale(1.2, 0.8); }
+  50% { transform: scale(0.9, 1.15) translateY(-8px); }
+  100% { transform: scale(1, 1); }
+}
+
+/* Balão de diálogo */
+.pet-bubble {
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  transform: translateX(-50%) scale(0);
+  background: rgba(15, 23, 42, 0.94);
+  color: #fff;
+  border: 1px solid var(--border-color);
+  padding: 4px 11px;
+  border-radius: 14px;
+  font-size: 0.82rem;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: all 0.25s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  z-index: 10;
+}
+
+[data-theme="light"] .pet-bubble {
+  background: rgba(255, 255, 255, 0.96);
+  color: #0f172a;
+  border-color: #e2e8f0;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.pet-bubble.is-visible {
+  transform: translateX(-50%) scale(1);
+  opacity: 1;
+}
+
+.pet-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 50%;
+  transform: translateX(-50%);
+  border-width: 4px 4px 0;
+  border-style: solid;
+  border-color: rgba(15, 23, 42, 0.94) transparent transparent;
+}
+
+[data-theme="light"] .pet-bubble::after {
+  border-color: rgba(255, 255, 255, 0.96) transparent transparent;
+}
+
+/* Partículas flutuantes (Corações e Brilhos) */
+.pet-particle {
+  position: fixed;
+  pointer-events: none;
+  font-size: 1.2rem;
+  z-index: 10000;
+  animation: floatParticle 1.2s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+
+@keyframes floatParticle {
+  0% {
+    opacity: 1;
+    transform: translateY(0) scale(0.6);
+  }
+  50% {
+    opacity: 1;
+    transform: translate(var(--tx, 0), -24px) scale(1.15);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(var(--tx, 0), -46px) scale(0.8);
+  }
+}
+
+
+/* Marcador visual de chamado por duplo toque */
+.pet-call-marker {
+  position: fixed;
+  transform: translate(-50%, -50%);
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  border: 2px solid rgba(236, 72, 153, 0.75);
+  background: radial-gradient(circle, rgba(236, 72, 153, 0.25) 0%, rgba(236, 72, 153, 0) 70%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.15rem;
+  pointer-events: none;
+  z-index: 9998;
+  animation: petCallRipple 0.65s cubic-bezier(0.12, 0.8, 0.32, 1) forwards;
+}
+
+@keyframes petCallRipple {
+  0% {
+    transform: translate(-50%, -50%) scale(0.2);
+    opacity: 1;
+  }
+  60% {
+    transform: translate(-50%, -50%) scale(1.15);
+    opacity: 0.9;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(1.5);
+    opacity: 0;
+  }
+}

@@ -9,10 +9,17 @@
   // Estado padrão
   let state = {
     xp: 0,
+    coins: 0,
     vales: 0,
     last_level_rewarded: 0,
     last_water_streak_rewarded: 0,
-    special_dates: {} // Formato: { "YYYY-MM": "YYYY-MM-DD" } - 1 por mês
+    special_dates: {}, // Formato: { "YYYY-MM": "YYYY-MM-DD" } - 1 por mês
+    pets_inventory: ['penguin'],
+    active_pet: 'penguin',
+    pet_size: 'medium', // 'small' | 'medium' | 'large'
+    pet_enabled: true,
+    pet_outfits: [], // IDs de roupas compradas (ex: 'scarf', 'crown', etc.)
+    active_outfit: 'none' // 'none', 'scarf', 'crown', etc.
   };
 
   function loadState() {
@@ -25,6 +32,18 @@
           state.special_dates = {};
         }
       }
+      // Inicialização segura de moedas (se for novo, calcula retroativo por XP * 3)
+      if (typeof state.coins !== 'number') {
+        state.coins = (state.xp || 0) * 3;
+      }
+      if (!Array.isArray(state.pets_inventory) || state.pets_inventory.length === 0) {
+        state.pets_inventory = ['penguin'];
+      }
+      if (!state.active_pet) state.active_pet = 'penguin';
+      if (!state.pet_size) state.pet_size = 'medium';
+      if (typeof state.pet_enabled !== 'boolean') state.pet_enabled = true;
+      if (!Array.isArray(state.pet_outfits)) state.pet_outfits = [];
+      if (!state.active_outfit) state.active_outfit = 'none';
     } catch (e) {
       console.warn('Erro ao carregar gamificação do localStorage:', e);
     }
@@ -76,15 +95,21 @@
   window.Gamification_addXP = function(amount, reason = '') {
     const oldLevel = window.Gamification_getLevel(state.xp);
     state.xp = Math.max(0, state.xp + amount);
+
+    // Sistema de Moedas: ganha o valor em XP vezes 3 em moedas!
+    // Tarefa normal: 8 XP * 3 = 24 moedas
+    // Rotina diária: XP_calculado * 3 (com bônus de ofensiva)
+    const coinsEarned = amount * 3;
+    state.coins = (state.coins || 0) + coinsEarned;
+
     const newLevel = window.Gamification_getLevel(state.xp);
 
     saveState();
     window.Gamification_render();
 
-    // Feedback de XP
+    // Feedback de XP e Moedas
     if (amount > 0 && window.showToast) {
-      // Exibir aviso discreto de XP apenas em tarefas
-      // (evitar flood em cliques repetidos)
+      // Exibir aviso discreto apenas se necessário
     }
 
     // Passou de nível!
@@ -95,8 +120,66 @@
 
   window.Gamification_removeXP = function(amount) {
     state.xp = Math.max(0, state.xp - amount);
+    state.coins = Math.max(0, (state.coins || 0) - (amount * 3));
     saveState();
     window.Gamification_render();
+  };
+
+  // Funções de Gerenciamento de Moedas
+  window.Gamification_getCoins = function() {
+    return state.coins || 0;
+  };
+
+  window.Gamification_addCoins = function(amount) {
+    state.coins = Math.max(0, (state.coins || 0) + amount);
+    saveState();
+    window.Gamification_render();
+    return state.coins;
+  };
+
+  window.Gamification_spendCoins = function(amount) {
+    if ((state.coins || 0) >= amount) {
+      state.coins -= amount;
+      saveState();
+      window.Gamification_render();
+      return true;
+    }
+    return false;
+  };
+
+  // Funções de Customização de Pets e Roupas
+  window.Gamification_getPetCustomizations = function() {
+    const validPets = ['penguin'];
+    const rawPets = Array.isArray(state.pets_inventory) ? state.pets_inventory : ['penguin'];
+    const filteredPets = rawPets.filter(p => validPets.includes(p));
+    if (!filteredPets.includes('penguin')) filteredPets.unshift('penguin');
+
+    let activePet = 'penguin';
+
+    const validOutfits = ['scarf'];
+    const rawOutfits = Array.isArray(state.pet_outfits) ? state.pet_outfits : [];
+    const filteredOutfits = rawOutfits.filter(o => validOutfits.includes(o));
+
+    let activeOutfit = state.active_outfit || 'none';
+    if (activeOutfit !== 'none' && !validOutfits.includes(activeOutfit)) activeOutfit = 'none';
+
+    return {
+      pets_inventory: filteredPets,
+      active_pet: activePet,
+      pet_size: state.pet_size || 'medium',
+      pet_enabled: state.pet_enabled !== false,
+      pet_outfits: filteredOutfits,
+      active_outfit: activeOutfit
+    };
+  };
+
+  window.Gamification_savePetCustomizations = function(updates) {
+    state = { ...state, ...updates };
+    saveState();
+    window.Gamification_render();
+    if (window.Pet_applyCustomizations) {
+      window.Pet_applyCustomizations(window.Gamification_getPetCustomizations());
+    }
   };
 
   window.Gamification_onLevelUp = function(newLevel, oldLevel) {
@@ -439,6 +522,20 @@
     const valesCountEl = document.getElementById('user-vales-num');
     if (valesCountEl) valesCountEl.textContent = state.vales;
 
+    // Renderizar contadores de Moedas
+    const coins = state.coins || 0;
+    const coinsNumEl = document.getElementById('user-coins-num');
+    if (coinsNumEl) coinsNumEl.textContent = coins;
+
+    const topbarCoinsEl = document.getElementById('topbar-coins-count');
+    if (topbarCoinsEl) topbarCoinsEl.textContent = coins;
+
+    const mobileCoinsEl = document.getElementById('mobile-menu-coins-count');
+    if (mobileCoinsEl) mobileCoinsEl.textContent = coins;
+
+    const shopCoinsEl = document.getElementById('shop-coins-display');
+    if (shopCoinsEl) shopCoinsEl.textContent = coins;
+
     // Próxima recompensa de nível múltiplo de 10
     const nextRewardHint = document.getElementById('xp-next-reward-hint');
     if (nextRewardHint) {
@@ -492,6 +589,21 @@
   };
 
   window.Gamification_setupEventListeners = function() {
+    // Botões de Moedas (Abrem a Loja)
+    const openShopBtns = [
+      document.getElementById('coins-pill-btn'),
+      document.getElementById('topbar-coins-pill'),
+      document.getElementById('mobile-menu-coins-pill')
+    ];
+    openShopBtns.forEach(btn => {
+      if (btn) {
+        btn.addEventListener('click', (e) => {
+          e.preventDefault();
+          if (window.Shop_openModal) window.Shop_openModal('shop-modal');
+        });
+      }
+    });
+
     // Botão de Vales
     const valesBtn = document.getElementById('vales-btn');
     if (valesBtn) {

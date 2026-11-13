@@ -2740,3 +2740,631 @@ input[type="date"]::-webkit-calendar-picker-indicator:hover {
 
 
 
+
+
+/* ========================================================== */
+/* SISTEMA DE MOEDAS, MENU HAMBURGUER, MEUS PETS & LOJA       */
+/* ========================================================== */
+
+/* Badge de Moedas na Top Bar */
+.topbar-coins-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+}
+
+.topbar-coins-badge:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+}
+
+.topbar-coins-badge .coin-icon {
+  font-size: 0.95rem;
+}
+
+/* Botão Hambúrguer Mobile */
+.top-bar-mobile {
+  display: none;
+}
+
+.hamburger-btn {
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.hamburger-btn:hover,
+.hamburger-btn:active {
+  background: var(--primary);
+  color: #fff;
+  border-color: var(--primary);
+}
+
+/* Regras de Responsividade para Top Bar & Hambúrguer */
+@media (max-width: 768px) {
+  .top-bar-right.desktop-nav {
+    display: none !important;
+  }
+  .top-bar-mobile {
+    display: flex !important;
+    align-items: center;
+    gap: 8px;
+  }
+}
+
+@media (min-width: 769px) {
+  .top-bar-mobile {
+    display: none !important;
+  }
+  .top-bar-right.desktop-nav {
+    display: flex !important;
+  }
+}
+
+/* Drawer / Menu Lateral Mobile */
+.mobile-menu-drawer {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 10000;
+  pointer-events: none;
+}
+
+.mobile-menu-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(10, 4, 20, 0.75);
+  backdrop-filter: blur(4px);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+  pointer-events: none;
+}
+
+.mobile-menu-panel {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 82%;
+  max-width: 320px;
+  height: 100%;
+  background: var(--bg-card);
+  border-left: 1px solid var(--border-color);
+  box-shadow: -8px 0 25px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  transform: translateX(100%);
+  transition: transform 0.28s cubic-bezier(0.16, 1, 0.3, 1);
+  pointer-events: auto;
+  overflow-y: auto;
+}
+
+.mobile-menu-drawer.is-open {
+  pointer-events: auto;
+}
+
+.mobile-menu-drawer.is-open .mobile-menu-backdrop {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.mobile-menu-drawer.is-open .mobile-menu-panel {
+  transform: translateX(0);
+}
+
+.mobile-menu-header {
+  padding: 18px 16px;
+  border-bottom: 1px solid var(--border-color);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.mobile-menu-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  overflow: hidden;
+}
+
+.mobile-menu-email {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mobile-menu-coins-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.15);
+  border: 1px solid rgba(245, 158, 11, 0.4);
+  color: #f59e0b;
+  padding: 4px 10px;
+  border-radius: 16px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  align-self: flex-start;
+}
+
+.mobile-menu-items {
+  padding: 12px 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+}
+
+.mobile-menu-item {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-main);
+  cursor: pointer;
+  text-align: left;
+  transition: all 0.18s ease;
+  width: 100%;
+}
+
+.mobile-menu-item:hover,
+.mobile-menu-item:active {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: var(--border-color);
+}
+
+.mobile-menu-item-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  background: rgba(168, 85, 247, 0.12);
+  color: var(--primary);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.05rem;
+  flex-shrink: 0;
+}
+
+.mobile-menu-item-text {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.mobile-menu-item-text strong {
+  font-size: 0.92rem;
+  color: var(--text-main);
+}
+
+.mobile-menu-item-text small {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.mobile-menu-divider {
+  height: 1px;
+  background: var(--border-color);
+  margin: 8px 0;
+}
+
+.mobile-menu-danger .mobile-menu-item-icon {
+  background: rgba(239, 68, 68, 0.12);
+  color: #ef4444;
+}
+
+.mobile-menu-danger strong {
+  color: #ef4444;
+}
+
+/* Pílula de Moedas no Card de Gamificação */
+.coins-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  color: #f59e0b;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.coins-pill:hover {
+  background: rgba(245, 158, 11, 0.22);
+  border-color: #f59e0b;
+  transform: translateY(-1px);
+}
+
+/* ========================================================== */
+/* MODAL: MEUS PETS                                           */
+/* ========================================================== */
+
+.pets-modal-content {
+  max-width: 540px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.pets-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+.pets-modal-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.pet-config-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.pet-section-block {
+  margin-bottom: 18px;
+}
+
+.pet-section-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.pet-section-title small {
+  font-weight: 400;
+}
+
+/* Seletor de Tamanho */
+.pet-size-selector {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.pet-size-btn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 8px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.pet-size-btn:hover {
+  background: rgba(255, 255, 255, 0.07);
+}
+
+.pet-size-btn.active {
+  border-color: var(--primary);
+  background: rgba(168, 85, 247, 0.15);
+  box-shadow: 0 0 12px rgba(168, 85, 247, 0.25);
+}
+
+.pet-size-icon {
+  font-size: 1.1rem;
+}
+
+.pet-size-btn strong {
+  font-size: 0.85rem;
+}
+
+.pet-size-btn small {
+  font-size: 0.72rem;
+  color: var(--text-muted);
+}
+
+/* Cards de Coleção de Pets */
+.pets-collection-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.pet-select-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.pet-select-card.is-active {
+  border-color: #22c55e;
+  background: rgba(34, 197, 94, 0.08);
+}
+
+.pet-card-icon {
+  font-size: 1.8rem;
+  width: 42px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.pet-card-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.pet-card-info strong {
+  font-size: 0.9rem;
+}
+
+.pet-card-info small {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Grid de Roupas & Acessórios */
+.pets-outfits-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.outfit-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  transition: all 0.2s ease;
+}
+
+.outfit-card.is-equipped {
+  border-color: #ec4899;
+  background: rgba(236, 72, 153, 0.08);
+}
+
+.outfit-card-icon {
+  font-size: 1.6rem;
+  width: 36px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.outfit-card-details {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.outfit-card-details strong {
+  font-size: 0.88rem;
+}
+
+.outfit-card-details small {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* ========================================================== */
+/* MODAL: LOJA DE PETS & ROUPAS                               */
+/* ========================================================== */
+
+.shop-modal-content {
+  max-width: 580px;
+  width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+.shop-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 14px;
+}
+
+.shop-modal-icon {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+/* Banner de Saldo da Loja */
+.shop-balance-banner {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.18) 0%, rgba(217, 119, 6, 0.08) 100%);
+  border: 1px solid rgba(245, 158, 11, 0.35);
+  border-radius: 14px;
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.shop-balance-main {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.shop-balance-coin {
+  font-size: 2.2rem;
+  line-height: 1;
+}
+
+.shop-balance-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.shop-balance-value {
+  font-size: 1.4rem;
+  color: #f59e0b;
+  font-weight: 800;
+}
+
+.shop-balance-hint {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  border-top: 1px solid rgba(245, 158, 11, 0.15);
+  padding-top: 6px;
+}
+
+/* Abas da Loja */
+.shop-tabs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.shop-tab {
+  padding: 10px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--border-color);
+  color: var(--text-muted);
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  transition: all 0.2s ease;
+}
+
+.shop-tab:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-main);
+}
+
+.shop-tab.active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(168, 85, 247, 0.3);
+}
+
+/* Grid de Itens da Loja */
+.shop-items-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.shop-item-card {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 16px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  transition: all 0.2s ease;
+}
+
+.shop-item-card:hover {
+  border-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.shop-item-preview {
+  font-size: 2rem;
+  width: 44px;
+  text-align: center;
+  flex-shrink: 0;
+}
+
+.shop-item-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.shop-item-title-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.shop-item-title-row strong {
+  font-size: 0.92rem;
+}
+
+.shop-item-price-tag {
+  background: rgba(245, 158, 11, 0.15);
+  color: #f59e0b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 10px;
+}
+
+.shop-item-desc {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin: 0;
+  line-height: 1.35;
+}
+
+.shop-item-footer {
+  flex-shrink: 0;
+}
+
+.shop-item-card.is-bought {
+  opacity: 0.75;
+  border-style: dashed;
+}

@@ -1,8 +1,9 @@
-const CACHE_NAME = 'rotina-julia-v16';
+const CACHE_NAME = 'rotina-julia-v27';
 const ASSETS = [
   './',
   './index.html',
   './css/style.css',
+  './css/pet.css',
   './js/app.js',
   './js/supabase.js',
   './js/settings.js',
@@ -13,6 +14,8 @@ const ASSETS = [
   './js/calendar.js',
   './js/routines.js',
   './js/charts.js',
+  './js/pet.js',
+  './js/shop.js',
   './js/player.js',
   './manifest.json',
   './calendario.png'
