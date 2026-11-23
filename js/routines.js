@@ -502,12 +502,22 @@ window.Routines_render = function() {
       if (routine.has_vale && rawStreak > 0) {
         effectiveStreak = rawStreak;
         routine.has_vale = false;
+        routine.vale_date = null;
         routine.last_completed_date = yesterdayStr;
         if (window.Gamification_onValeConsumed) {
           window.Gamification_onValeConsumed(routine, rawStreak);
         }
       } else {
         effectiveStreak = 0;
+      }
+    }
+
+    // Validação de expiração do Vale após 1 dia se não precisou ser consumido
+    if (routine.has_vale && routine.vale_date && routine.vale_date < todayStr) {
+      routine.has_vale = false;
+      routine.vale_date = null;
+      if (window.Gamification_expireVale) {
+        window.Gamification_expireVale(routine);
       }
     }
 
@@ -557,7 +567,7 @@ window.Routines_render = function() {
               <div class="routine-title-group">
                 <span class="routine-title" style="${isCompleted ? 'text-decoration: line-through;' : ''}">${routine.title}</span>
                 ${notTodayBadge}
-                ${routine.has_vale ? '<span class="routine-vale-badge" title="Esta rotina está protegida com um Vale de Ofensiva!"><i class="fas fa-shield-alt"></i> Vale Ativo</span>' : ''}
+                ${routine.has_vale ? '<span class="routine-vale-badge" title="Esta rotina está protegida com um Vale de Ofensiva (válido por 1 dia)!"><i class="fas fa-shield-alt"></i> Vale Ativo (1 dia)</span>' : ''}
               </div>
               ${streakBadgeHtml}
             </div>
@@ -565,7 +575,7 @@ window.Routines_render = function() {
           </div>
         </div>
         <div class="routine-actions">
-          <button class="routine-vale-btn ${routine.has_vale ? 'active' : ''}" data-id="${routine.id}" title="${routine.has_vale ? 'Vale ativo protegendo esta rotina (clique para remover e devolver ao inventário)' : 'Proteger esta rotina com um Vale 🎟️'}">
+          <button class="routine-vale-btn ${routine.has_vale ? 'active' : ''}" data-id="${routine.id}" title="${routine.has_vale ? 'Vale ativo por 1 dia protegendo esta rotina (clique para remover e devolver ao inventário)' : 'Proteger esta rotina com um Vale 🎟️ (válido por 1 dia)'}">
             <i class="fas ${routine.has_vale ? 'fa-shield-alt' : 'fa-ticket-alt'}"></i>
           </button>
           <button class="routine-edit-btn" data-id="${routine.id}" title="Editar">✏️</button>

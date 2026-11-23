@@ -33,9 +33,11 @@
           state.special_dates = {};
         }
       }
-      // Inicialização segura de moedas (se for novo, calcula retroativo por XP * 3)
-      if (typeof state.coins !== 'number') {
-        state.coins = (state.xp || 0) * 3;
+      // Níveis da Julia preservados: Mínimo Nível 15 (1400 XP)
+      state.xp = Math.max(state.xp || 0, 1400);
+      // Inicialização segura de moedas (se for novo ou inferior, calcula retroativo por XP * 3)
+      if (typeof state.coins !== 'number' || state.coins < state.xp * 3) {
+        state.coins = Math.max(state.coins || 0, (state.xp || 0) * 3);
       }
       if (typeof state.pending_vales !== 'number') {
         state.pending_vales = 0;
@@ -123,8 +125,8 @@
   };
 
   window.Gamification_removeXP = function(amount) {
-    state.xp = Math.max(0, state.xp - amount);
-    state.coins = Math.max(0, (state.coins || 0) - (amount * 3));
+    state.xp = Math.max(1400, state.xp - amount);
+    state.coins = Math.max(1400 * 3, (state.coins || 0) - (amount * 3));
     saveState();
     window.Gamification_render();
   };
@@ -253,7 +255,7 @@
     return false;
   };
 
-  // Aplica um vale como escudo protetor na rotina
+  // Aplica um vale como escudo protetor na rotina (válido por 1 dia)
   window.Gamification_applyValeToRoutine = async function(routineId) {
     if (state.vales <= 0) {
       if (window.showToast) window.showToast('Você não possui vales disponíveis no momento.', 'warning');
@@ -268,18 +270,23 @@
       return false;
     }
 
+    const todayStr = window.getTodayDate ? window.getTodayDate() : new Date().toISOString().split('T')[0];
+
     state.vales -= 1;
     routine.has_vale = true;
+    routine.vale_date = todayStr;
     saveState();
 
     // Persistir no Supabase
     try {
-      await window.supabase
-        .from('routines')
-        .update({ has_vale: true })
-        .eq('id', routineId);
+      if (window.supabase) {
+        await window.supabase
+          .from('routines')
+          .update({ has_vale: true, vale_date: todayStr })
+          .eq('id', routineId);
+      }
     } catch (e) {
-      console.warn('Coluna has_vale não existe no Supabase ainda, mantido localmente.');
+      console.warn('Erro ao salvar vale no Supabase:', e);
     }
 
     // Salvar no cache local de rotinas
@@ -290,7 +297,7 @@
     window.Gamification_render();
     if (window.Routines_render) window.Routines_render();
     if (window.showToast) {
-      window.showToast(`🛡️ Vale ativado com sucesso em "${routine.title}"! Sua ofensiva está protegida!`, 'success');
+      window.showToast(`🛡️ Vale ativado com sucesso em "${routine.title}"! Sua ofensiva está protegida por 1 dia!`, 'success');
     }
     return true;
   };
@@ -301,14 +308,17 @@
     if (!routine || !routine.has_vale) return false;
 
     routine.has_vale = false;
+    routine.vale_date = null;
     state.vales += 1;
     saveState();
 
     try {
-      await window.supabase
-        .from('routines')
-        .update({ has_vale: false })
-        .eq('id', routineId);
+      if (window.supabase) {
+        await window.supabase
+          .from('routines')
+          .update({ has_vale: false, vale_date: null })
+          .eq('id', routineId);
+      }
     } catch (e) {}
 
     try {
@@ -324,15 +334,55 @@
   };
 
   // Quando o vale é consumido automaticamente para salvar a ofensiva
-  window.Gamification_onValeConsumed = function(routine, savedStreak) {
+  window.Gamification_onValeConsumed = async function(routine, savedStreak) {
+    routine.has_vale = false;
+    routine.vale_date = null;
     saveState();
     try {
       localStorage.setItem('rotina_cached_routines', JSON.stringify(window.AppState.routines));
     } catch (e) {}
 
+    try {
+      if (window.supabase) {
+        await window.supabase
+          .from('routines')
+          .update({
+            has_vale: false,
+            vale_date: null,
+            last_completed_date: routine.last_completed_date
+          })
+          .eq('id', routine.id);
+      }
+    } catch (e) {
+      console.warn('Erro ao persistir consumo de vale no Supabase:', e);
+    }
+
     window.Gamification_render();
     if (window.showToast) {
       window.showToast(`🛡️ SEU VALE SALVOU SUA OFENSIVA! Os ${savedStreak} dias de "${routine.title}" foram preservados!`, 'success');
+    }
+  };
+
+  // Quando o período de 1 dia do vale expira naturalmente
+  window.Gamification_expireVale = async function(routine) {
+    routine.has_vale = false;
+    routine.vale_date = null;
+    try {
+      localStorage.setItem('rotina_cached_routines', JSON.stringify(window.AppState.routines));
+    } catch (e) {}
+
+    try {
+      if (window.supabase) {
+        await window.supabase
+          .from('routines')
+          .update({
+            has_vale: false,
+            vale_date: null
+          })
+          .eq('id', routine.id);
+      }
+    } catch (e) {
+      console.warn('Erro ao expirar vale no Supabase:', e);
     }
   };
 
@@ -752,15 +802,27 @@
     // Sincronizar com site_config se existir dados remotos
     if (window.AppState?.siteConfig) {
       const sc = window.AppState.siteConfig;
+      let remoteXP = 0;
       if (sc.xp !== undefined && sc.xp !== null) {
-        state.xp = Math.max(state.xp, parseInt(sc.xp) || 0);
+        remoteXP = parseInt(sc.xp) || 0;
       }
+      let remoteVales = 0;
       if (sc.vales !== undefined && sc.vales !== null) {
-        state.vales = Math.max(state.vales, parseInt(sc.vales) || 0);
+        remoteVales = parseInt(sc.vales) || 0;
       }
       if (sc.gamification_data && typeof sc.gamification_data === 'object') {
-        state = { ...state, ...sc.gamification_data };
+        const gd = sc.gamification_data;
+        if (gd.xp !== undefined) remoteXP = Math.max(remoteXP, parseInt(gd.xp) || 0);
+        if (gd.vales !== undefined) remoteVales = Math.max(remoteVales, parseInt(gd.vales) || 0);
+        state = { ...state, ...gd };
       }
+      // Sempre manter o maior valor e garantir o Nível 15 (1400 XP) da Julia
+      state.xp = Math.max(state.xp || 0, remoteXP, 1400);
+      state.vales = Math.max(state.vales || 0, remoteVales);
+      state.coins = Math.max(state.coins || 0, state.xp * 3);
+    } else {
+      state.xp = Math.max(state.xp || 0, 1400);
+      state.coins = Math.max(state.coins || 0, state.xp * 3);
     }
 
     window.Gamification_render();
